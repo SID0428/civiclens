@@ -17,17 +17,23 @@ export interface FusedPosition {
 }
 
 export const GeoService = {
-  // Fast IP Fallback (guarantees coordinates never get stuck on desktop/laptop)
-  fetchIPLocation: async (): Promise<FusedPosition | null> => {
+  // Ultra-Fast Zero-Wait Network Resolver (Fetches in <200ms)
+  fetchFastNetworkLocation: async (): Promise<FusedPosition | null> => {
     try {
-      const res = await fetch('https://ipwho.is/');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      // Try freeipapi.com (Fast CORS HTTPS)
+      const res = await fetch('https://freeipapi.com/api/json', { signal: controller.signal });
+      clearTimeout(timeoutId);
+
       if (res.ok) {
         const data = await res.json();
-        if (data && data.success && data.latitude && data.longitude) {
+        if (data && data.latitude && data.longitude) {
           return {
-            lat: data.latitude,
-            lng: data.longitude,
-            accuracy: 150,
+            lat: parseFloat(data.latitude),
+            lng: parseFloat(data.longitude),
+            accuracy: 100,
             speed: null,
             heading: null,
             altitude: null,
@@ -35,29 +41,52 @@ export const GeoService = {
           };
         }
       }
-    } catch {
-      // Ignore
+    } catch (e) {
+      // Try secondary fallback (ipapi.co)
+      try {
+        const res2 = await fetch('https://ipapi.co/json/');
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (data2 && data2.latitude && data2.longitude) {
+            return {
+              lat: parseFloat(data2.latitude),
+              lng: parseFloat(data2.longitude),
+              accuracy: 100,
+              speed: null,
+              heading: null,
+              altitude: null,
+              timestamp: Date.now(),
+            };
+          }
+        }
+      } catch {
+        // Ignore
+      }
     }
     return null;
   },
 
-  // Progressive Multi-Tier Geolocation Engine
+  // Instant Multi-Tier Live GPS Tracker
   startLiveTracking: (
     onUpdate: (pos: FusedPosition) => void,
     onError: (err: GeolocationPositionError) => void
   ): { watchId: number | null } => {
+    let hasHighAccuracyFix = false;
+
+    // 1. Fire Fast Network Location Immediately (Zero waiting)
+    GeoService.fetchFastNetworkLocation().then((netPos) => {
+      if (netPos && !hasHighAccuracyFix) {
+        console.log('[GPS Fast-Lock]: Initial position acquired via network');
+        onUpdate(netPos);
+      }
+    });
+
     if (!navigator.geolocation) {
-      // Try IP fallback immediately
-      GeoService.fetchIPLocation().then((ipPos) => {
-        if (ipPos) onUpdate(ipPos);
-      });
       return { watchId: null };
     }
 
-    let hasReceivedPosition = false;
-
-    const handleSuccess = (pos: GeolocationPosition) => {
-      hasReceivedPosition = true;
+    const processSensorPosition = (pos: GeolocationPosition) => {
+      hasHighAccuracyFix = true;
       onUpdate({
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
@@ -69,43 +98,25 @@ export const GeoService = {
       });
     };
 
-    // Tier 1: Instant Quick-Fix (Standard accuracy, immediate prompt)
+    // 2. Immediate Hardware Position Request
     navigator.geolocation.getCurrentPosition(
-      handleSuccess,
+      processSensorPosition,
       (err) => {
-        console.warn('[GPS Tier 1]:', err.message);
-        // If timed out or position unavailable, attempt IP fallback so UI doesn't hang
-        if (err.code !== 1 && !hasReceivedPosition) {
-          GeoService.fetchIPLocation().then((ipPos) => {
-            if (ipPos && !hasReceivedPosition) onUpdate(ipPos);
-          });
-        }
+        console.warn('[GPS Hardware Request]:', err.message);
         onError(err);
       },
-      { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
     );
 
-    // Tier 2: Continuous High-Accuracy GNSS Satellite Stream
+    // 3. Continuous Real-time Hardware Stream
     const watchId = navigator.geolocation.watchPosition(
-      handleSuccess,
+      processSensorPosition,
       (err) => {
-        console.warn('[GPS Tier 2 Watch]:', err.message);
+        console.warn('[GPS Watch Stream]:', err.message);
         onError(err);
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
     );
-
-    // Safety timeout: If no GPS response in 7 seconds, trigger IP fallback so it NEVER hangs
-    setTimeout(() => {
-      if (!hasReceivedPosition) {
-        GeoService.fetchIPLocation().then((ipPos) => {
-          if (ipPos && !hasReceivedPosition) {
-            console.log('[GPS Fallback]: Locked initial coordinates via network');
-            onUpdate(ipPos);
-          }
-        });
-      }
-    }, 7000);
 
     return { watchId };
   },

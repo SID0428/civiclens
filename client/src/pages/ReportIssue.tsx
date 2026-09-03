@@ -76,7 +76,6 @@ export const ReportIssue: React.FC = () => {
         console.warn('GPS error callback:', err);
         if (err.code === 1) {
           setGpsDenied(true);
-          setGpsLoading(false);
         }
       }
     );
@@ -123,7 +122,7 @@ export const ReportIssue: React.FC = () => {
     e.preventDefault();
 
     if (liveLat === null || liveLng === null) {
-      alert('Strict GPS Location is mandatory! Please click "Allow Location" to continue.');
+      alert('Strict GPS Location is mandatory! Please click "Allow Location" or "Sync GPS" to continue.');
       startGpsTracking();
       return;
     }
@@ -277,7 +276,7 @@ export const ReportIssue: React.FC = () => {
                   </h3>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  {gpsLoading ? 'Acquiring high-accuracy hardware sensor...' : `Continuous hardware stream • Ping #${updateCount}`}
+                  {gpsLoading && liveLat === null ? 'Acquiring hardware sensor...' : `Continuous hardware stream • Ping #${updateCount}`}
                 </p>
               </div>
 
