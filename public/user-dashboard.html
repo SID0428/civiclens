@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen Grievance Tracker | CivicLens</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#eff6ff', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans selection:bg-brand-500 selection:text-white">
+
+  <!-- Navigation -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex justify-between items-center">
+      <a href="index.html" class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white text-base font-bold">
+          <i class="fa-solid fa-camera-retro"></i>
+        </div>
+        <span class="text-lg font-bold text-slate-900">CivicLens</span>
+      </a>
+
+      <div class="flex items-center space-x-4">
+        <a href="report-issue.html" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-500/20 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-plus"></i> Report Issue
+        </a>
+        <button onclick="API.logout()" class="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-red-600 transition">
+          Log Out
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Dashboard Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    
+    <!-- User Welcome Banner -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+      <div class="flex items-center space-x-4">
+        <div id="userAvatar" class="w-14 h-14 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-xl font-black">
+          U
+        </div>
+        <div>
+          <h1 id="userName" class="text-2xl font-black text-slate-900">Welcome, Citizen</h1>
+          <p id="userEmail" class="text-xs text-slate-500 mt-0.5">citizen@example.com</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="report-issue.html" class="px-5 py-2.5 bg-gradient-to-r from-brand-600 to-indigo-600 text-white font-bold text-xs rounded-xl shadow hover:shadow-md transition flex items-center gap-2">
+          <i class="fa-solid fa-camera"></i> File New Grievance
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="text-xs font-bold text-slate-500 uppercase">Total Reported</div>
+        <div id="statTotal" class="text-3xl font-black text-slate-900 mt-1">0</div>
+      </div>
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="text-xs font-bold text-amber-600 uppercase">Pending Review</div>
+        <div id="statPending" class="text-3xl font-black text-amber-600 mt-1">0</div>
+      </div>
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="text-xs font-bold text-indigo-600 uppercase">In Progress</div>
+        <div id="statProgress" class="text-3xl font-black text-indigo-600 mt-1">0</div>
+      </div>
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="text-xs font-bold text-emerald-600 uppercase">Resolved</div>
+        <div id="statResolved" class="text-3xl font-black text-emerald-600 mt-1">0</div>
+      </div>
+    </div>
+
+    <!-- Grievances List Section -->
+    <div class="space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-bold text-slate-900">My Reported Issues</h2>
+        <button onclick="loadMyComplaints()" class="text-xs font-bold text-brand-600 hover:underline flex items-center gap-1">
+          <i class="fa-solid fa-rotate-right"></i> Refresh
+        </button>
+      </div>
+
+      <div id="complaintsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Complaint cards will be injected here -->
+        <div class="col-span-full py-12 text-center text-slate-400">
+          <i class="fa-solid fa-spinner fa-spin text-2xl text-brand-600"></i>
+          <p class="mt-2 text-sm">Loading your grievance history...</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="js/api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = API.getUser();
+      const role = API.getRole();
+
+      if (!user || role !== 'citizen') {
+        API.showToast("Please log in as a citizen.", "warning");
+        setTimeout(() => window.location.href = 'user-login.html', 1000);
+        return;
+      }
+
+      document.getElementById('userName').innerText = `Welcome, ${user.name}`;
+      document.getElementById('userEmail').innerText = user.email;
+      document.getElementById('userAvatar').innerText = user.name.charAt(0).toUpperCase();
+
+      loadMyComplaints();
+    });
+
+    async function loadMyComplaints() {
+      const container = document.getElementById('complaintsContainer');
+      try {
+        const res = await API.request('/complaints/my');
+        const list = res.complaints || [];
+
+        // Update stats
+        document.getElementById('statTotal').innerText = list.length;
+        document.getElementById('statPending').innerText = list.filter(c => c.status === 'Pending').length;
+        document.getElementById('statProgress').innerText = list.filter(c => c.status === 'In Progress' || c.status === 'Under Review').length;
+        document.getElementById('statResolved').innerText = list.filter(c => c.status === 'Resolved').length;
+
+        if (list.length === 0) {
+          container.innerHTML = `
+            <div class="col-span-full bg-white rounded-3xl p-12 text-center border border-slate-200">
+              <div class="w-16 h-16 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-2xl mx-auto mb-4">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900">No Complaints Lodged Yet</h3>
+              <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Have you spotted a pothole, garbage dump, or broken streetlight? Report it in 30 seconds.</p>
+              <a href="report-issue.html" class="inline-block mt-4 px-6 py-2.5 rounded-xl bg-brand-600 text-white text-xs font-bold shadow hover:bg-brand-700 transition">
+                Report Civic Issue Now
+              </a>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = list.map(item => `
+          <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+            <div>
+              <div class="relative aspect-video bg-slate-100 overflow-hidden">
+                <img src="${item.imageUrl}" alt="${item.title}" class="w-full h-full object-cover">
+                <span class="absolute top-3 right-3 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-md ${getStatusBadgeClass(item.status)}">
+                  ${item.status}
+                </span>
+                <span class="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-mono font-bold">
+                  PIN: ${item.pincode}
+                </span>
+              </div>
+
+              <div class="p-5 space-y-3">
+                <div class="flex items-center gap-2 text-xs font-bold text-brand-600">
+                  <i class="fa-solid fa-tag"></i> ${item.category}
+                </div>
+                <h3 class="font-bold text-slate-900 text-base line-clamp-1">${item.title}</h3>
+                <p class="text-slate-500 text-xs line-clamp-2">${item.description}</p>
+                <div class="text-[11px] text-slate-400 flex items-center gap-1.5 truncate">
+                  <i class="fa-solid fa-location-dot text-slate-400"></i> ${item.address}
+                </div>
+              </div>
+            </div>
+
+            <div class="p-5 pt-0 border-t border-slate-100 mt-3 pt-3 space-y-2">
+              <div class="text-[11px] text-slate-500 flex justify-between items-center">
+                <span>Assigned Officer:</span>
+                <span class="font-bold text-slate-700">${item.assignedSubAdmin ? item.assignedSubAdmin.name : 'District Routing Pending'}</span>
+              </div>
+              
+              ${item.resolvedImageUrl ? `
+                <div class="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200">
+                  <div class="text-[10px] font-bold text-emerald-800 uppercase mb-1">Official Resolution Proof:</div>
+                  <img src="${item.resolvedImageUrl}" class="rounded-lg h-24 w-full object-cover shadow-sm">
+                  ${item.resolutionNotes ? `<p class="text-[11px] text-emerald-900 mt-1.5 italic font-medium">"${item.resolutionNotes}"</p>` : ''}
+                </div>
+              ` : ''}
+
+              <div class="text-[10px] text-slate-400 text-right">
+                Reported on ${new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        container.innerHTML = `<div class="col-span-full text-center text-red-600 p-8">${err.message || 'Failed to load complaints'}</div>`;
+      }
+    }
+
+    function getStatusBadgeClass(status) {
+      switch(status) {
+        case 'Resolved': return 'bg-emerald-500 text-white';
+        case 'In Progress': return 'bg-indigo-600 text-white';
+        case 'Under Review': return 'bg-amber-500 text-white';
+        case 'Rejected': return 'bg-rose-500 text-white';
+        default: return 'bg-slate-700 text-white';
+      }
+    }
+  </script>
+</body>
+</html>

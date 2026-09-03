@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Civic Grievance | CivicLens</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Leaflet Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans antialiased selection:bg-sky-500 selection:text-white">
+
+  <!-- Navigation -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex justify-between items-center">
+      <a href="index.html" class="flex items-center space-x-2.5 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-600 flex items-center justify-center text-white text-base font-bold shadow-md shadow-sky-500/20 group-hover:scale-105 transition">
+          <i class="fa-solid fa-camera-retro"></i>
+        </div>
+        <span class="text-lg font-bold text-slate-900">Civic<span class="text-sky-600">Lens</span></span>
+      </a>
+      <div id="navRight" class="flex items-center space-x-4">
+        <a href="user-dashboard.html" class="text-xs font-semibold text-slate-600 hover:text-sky-600 transition">
+          My Complaints
+        </a>
+        <a href="index.html" class="text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
+          Home
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-3xl p-6 sm:p-10 shadow-xl shadow-slate-200/60 border border-slate-200/80">
+      
+      <!-- Header -->
+      <div class="mb-8 border-b border-slate-100 pb-6">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold mb-2">
+          <i class="fa-solid fa-location-crosshairs text-sky-600"></i> Auto-GPS Geotagged Grievance
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Report a Civic Issue</h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">Our system will automatically fetch your GPS coordinates and route the issue to the matching District Officer.</p>
+      </div>
+
+      <!-- Form -->
+      <form id="reportForm" class="space-y-6">
+        
+        <!-- CITIZEN IDENTITY SECTION -->
+        <div class="p-5 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-3">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-user-circle text-sky-600"></i>
+              Citizen Information
+            </h3>
+            <span id="authStatusBadge" class="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-200">
+              Guest (Email OTP Verification on submit)
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Your Full Name <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="citizenName" required placeholder="Aarav Sharma" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Your Email Address <span class="text-red-500">*</span>
+              </label>
+              <input type="email" id="citizenEmail" required placeholder="aarav@gmail.com" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue Title -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            Issue Title <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="title" required placeholder="e.g. Hazardous pothole causing traffic jam near main market" class="w-full px-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+        </div>
+
+        <!-- Category & Priority Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              Civic Department / Category <span class="text-red-500">*</span>
+            </label>
+            <select id="category" required class="w-full px-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+              <option value="Roads & Potholes">Roads & Potholes (PWD)</option>
+              <option value="Garbage & Sanitation">Garbage & Sanitation (Waste Board)</option>
+              <option value="Water Supply & Sewage">Water Supply & Sewage (Jal Board)</option>
+              <option value="Electricity & Streetlights">Electricity & Streetlights</option>
+              <option value="Public Infrastructure">Public Infrastructure</option>
+              <option value="Encroachment & Traffic">Encroachment & Traffic</option>
+              <option value="Other">Other Issues</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              Severity / Priority
+            </label>
+            <select id="priority" class="w-full px-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+              <option value="Medium">Medium (Standard SLA)</option>
+              <option value="High">High (Impacting Traffic/Safety)</option>
+              <option value="Critical">Critical Emergency</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Issue Description -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            Detailed Description <span class="text-red-500">*</span>
+          </label>
+          <textarea id="description" rows="3" required placeholder="Describe the civic hazard, exact landmark, and how long it has been unresolved..." class="w-full px-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition"></textarea>
+        </div>
+
+        <!-- Photo Upload (Cloudinary) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            Issue Photo (Cloudinary Storage) <span class="text-red-500">*</span>
+          </label>
+          
+          <div id="dropzone" class="border-2 border-dashed border-slate-200 hover:border-sky-500 rounded-2xl p-6 text-center transition bg-slate-50/50 cursor-pointer">
+            <input type="file" id="imageInput" accept="image/*" class="hidden" required>
+            <div id="uploadPrompt" class="space-y-2">
+              <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl mx-auto">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+              </div>
+              <div class="text-xs font-bold text-slate-700">Click to upload or take a live photo</div>
+              <p class="text-[11px] text-slate-400">Supports JPG, PNG, WEBP up to 10MB</p>
+            </div>
+            
+            <!-- Image Preview -->
+            <div id="previewContainer" class="hidden relative max-w-xs mx-auto">
+              <img id="imagePreview" src="" alt="Issue Preview" class="rounded-xl shadow-md max-h-48 mx-auto object-cover">
+              <button type="button" onclick="removeImage(event)" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow hover:bg-red-700">
+                &times;
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUTO-GPS & PINCODE SECTION -->
+        <div class="bg-gradient-to-br from-sky-50/50 to-blue-50/40 p-6 rounded-2xl border border-sky-100 space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+            <div>
+              <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <i class="fa-solid fa-location-dot text-sky-600"></i>
+                Location & Pincode Auto-Detection
+              </h3>
+              <p class="text-[11px] text-slate-500">Reverse geocoding resolves your exact district pincode for sub-admin routing</p>
+            </div>
+            <button type="button" id="detectGpsBtn" onclick="autoDetectLocation()" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-crosshairs"></i>
+              <span>Auto-Detect GPS</span>
+            </button>
+          </div>
+
+          <!-- Quick Landmark / Colony Search Box -->
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+              Search Area, Landmark, or Colony
+            </label>
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+              <input type="text" id="placeSearchInput" placeholder="e.g. Connaught Place, New Delhi or Koramangala, Bengaluru" onkeydown="if(event.key==='Enter'){event.preventDefault();searchLandmark();}" class="w-full pl-9 pr-24 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+              <button type="button" onclick="searchLandmark()" class="absolute right-1.5 top-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold rounded-lg transition">
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div id="gpsStatusMsg" class="hidden text-xs p-2.5 rounded-xl"></div>
+
+          <!-- Pincode & District Fields -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                District Pincode <span class="text-red-500">*</span>
+              </label>
+              <div class="relative">
+                <input type="text" id="pincode" maxlength="6" required placeholder="e.g. 110001" oninput="handlePincodeInput(this.value)" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-sky-900 focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+                <span id="pincodeSpinner" class="hidden absolute right-3 top-2.5 text-xs text-sky-600">
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                </span>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1">Typing a 6-digit PIN instantly centers the map</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                District / City
+              </label>
+              <input type="text" id="district" placeholder="e.g. Central Delhi" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+            </div>
+          </div>
+
+          <!-- Full Address -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Full Address & Landmark
+            </label>
+            <input type="text" id="address" required placeholder="Click map or type landmark details..." class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+          </div>
+
+          <!-- Hidden Coordinates -->
+          <input type="hidden" id="latitude" value="28.6139">
+          <input type="hidden" id="longitude" value="77.2090">
+
+          <!-- Map Preview -->
+          <div class="rounded-xl overflow-hidden border border-slate-200 shadow-inner h-52 w-full z-10" id="map"></div>
+          <div class="flex justify-between items-center text-[11px] text-slate-400">
+            <span id="coordsBadge" class="font-mono">GPS: 28.613900, 77.209000</span>
+            <span class="italic text-[10px] text-sky-700">Click anywhere on map to position the exact pin</span>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="submitComplaintBtn" class="w-full py-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shadow-md shadow-sky-500/20 hover:shadow-lg transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span id="submitBtnText">Submit Grievance to Dedicated Sub-Admin</span>
+        </button>
+      </form>
+
+    </div>
+  </main>
+
+  <!-- GUEST CITIZEN OTP VERIFICATION MODAL -->
+  <div id="otpModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-5 shadow-2xl">
+      <div class="text-center space-y-2">
+        <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl mx-auto">
+          <i class="fa-solid fa-envelope-circle-check"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900">Verify Email & Submit Issue</h3>
+        <p class="text-xs text-slate-500">
+          A 6-digit verification OTP was sent to <strong id="modalEmailDisplay" class="text-slate-800"></strong>.
+        </p>
+      </div>
+
+      <div id="modalDevOtpNotice" class="hidden p-2.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs text-center font-medium"></div>
+
+      <form id="otpVerifyForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 text-center">
+            Enter 6-Digit Email OTP
+          </label>
+          <input type="text" id="modalOtpInput" maxlength="6" required placeholder="849201" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-mono text-center tracking-widest text-slate-900 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+        </div>
+
+        <button type="submit" id="modalVerifyBtn" class="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-500/20 transition">
+          Confirm OTP & Lodge Grievance
+        </button>
+
+        <div class="flex justify-between items-center text-xs pt-2">
+          <button type="button" onclick="resendModalOTP()" id="modalResendBtn" class="text-sky-600 font-bold hover:underline">
+            Resend OTP
+          </button>
+          <button type="button" onclick="closeOtpModal()" class="text-slate-400 hover:text-slate-700">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/geo.js"></script>
+  <script>
+    let map, marker;
+    let selectedFile = null;
+    let debounceTimer;
+    let isUserLoggedIn = false;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check if citizen is logged in
+      const user = API.getUser();
+      const role = API.getRole();
+
+      if (user && role === 'citizen') {
+        isUserLoggedIn = true;
+        document.getElementById('citizenName').value = user.name;
+        document.getElementById('citizenEmail').value = user.email;
+        document.getElementById('citizenEmail').readOnly = true;
+        document.getElementById('citizenEmail').classList.add('bg-slate-100', 'cursor-not-allowed');
+        
+        const badge = document.getElementById('authStatusBadge');
+        badge.className = 'text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+        badge.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Verified Citizen (${user.name.split(' ')[0]})`;
+      }
+
+      initMap(28.6139, 77.2090);
+      autoDetectLocation();
+    });
+
+    function initMap(lat, lng) {
+      if (!map) {
+        map = L.map('map').setView([lat, lng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+        map.on('click', async function(e) {
+          marker.setLatLng(e.latlng);
+          updateCoordinates(e.latlng.lat, e.latlng.lng);
+          await fetchAddressForCoords(e.latlng.lat, e.latlng.lng);
+        });
+
+        marker.on('dragend', async function() {
+          const pos = marker.getLatLng();
+          updateCoordinates(pos.lat, pos.lng);
+          await fetchAddressForCoords(pos.lat, pos.lng);
+        });
+      } else {
+        map.setView([lat, lng], 15);
+        marker.setLatLng([lat, lng]);
+      }
+    }
+
+    function updateCoordinates(lat, lng) {
+      document.getElementById('latitude').value = lat;
+      document.getElementById('longitude').value = lng;
+      document.getElementById('coordsBadge').innerText = `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    }
+
+    async function fetchAddressForCoords(lat, lng) {
+      try {
+        const res = await Geo.reverseGeocode(lat, lng);
+        if (res.pincode) document.getElementById('pincode').value = res.pincode;
+        if (res.district) document.getElementById('district').value = res.district;
+        if (res.address) document.getElementById('address').value = res.address;
+      } catch(err) {
+        console.warn(err);
+      }
+    }
+
+    async function searchLandmark() {
+      const query = document.getElementById('placeSearchInput').value.trim();
+      if (!query) return;
+
+      API.showToast(`Searching "${query}"...`, "info");
+      const result = await Geo.searchLocation(query);
+      if (result) {
+        updateCoordinates(result.lat, result.lng);
+        initMap(result.lat, result.lng);
+        if (result.pincode) document.getElementById('pincode').value = result.pincode;
+        if (result.district) document.getElementById('district').value = result.district;
+        if (result.address) document.getElementById('address').value = result.address;
+        API.showToast("Location found & map centered!", "success");
+      } else {
+        API.showToast("Could not find that landmark. Try typing the 6-digit Pincode directly.", "warning");
+      }
+    }
+
+    async function autoDetectLocation() {
+      const btn = document.getElementById('detectGpsBtn');
+      const statusEl = document.getElementById('gpsStatusMsg');
+      
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Detecting...';
+      statusEl.classList.remove('hidden');
+      statusEl.className = 'text-xs p-2.5 rounded-xl bg-sky-50 text-sky-800 border border-sky-200';
+      statusEl.innerText = 'Detecting GPS & reverse-geocoding postal pincode...';
+
+      try {
+        const loc = await Geo.getCurrentPosition();
+        updateCoordinates(loc.lat, loc.lng);
+        initMap(loc.lat, loc.lng);
+
+        if (loc.pincode) document.getElementById('pincode').value = loc.pincode;
+        if (loc.district) document.getElementById('district').value = loc.district;
+        if (loc.address) document.getElementById('address').value = loc.address;
+
+        if (!loc.pincode || loc.source !== 'ip_fallback') {
+          const geo = await Geo.reverseGeocode(loc.lat, loc.lng);
+          if (geo.pincode) document.getElementById('pincode').value = geo.pincode;
+          if (geo.district) document.getElementById('district').value = geo.district;
+          if (geo.address) document.getElementById('address').value = geo.address;
+        }
+
+        const detectedPin = document.getElementById('pincode').value;
+        statusEl.className = 'text-xs p-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200';
+        statusEl.innerHTML = `✓ Location locked! Pincode <strong>${detectedPin || 'detected'}</strong> mapped for District Officer routing.`;
+      } catch (err) {
+        statusEl.className = 'text-xs p-2.5 rounded-xl bg-sky-50 text-sky-800 border border-sky-200';
+        statusEl.innerHTML = `Location ready. Search your colony/landmark above or click on the map to place the pin.`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-crosshairs"></i> Auto-Detect GPS';
+      }
+    }
+
+    function handlePincodeInput(pincode) {
+      const clean = pincode.replace(/\D/g, '');
+      if (clean.length === 6) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+          const spinner = document.getElementById('pincodeSpinner');
+          spinner.classList.remove('hidden');
+          const result = await Geo.searchLocation(clean);
+          spinner.classList.add('hidden');
+          
+          if (result) {
+            updateCoordinates(result.lat, result.lng);
+            initMap(result.lat, result.lng);
+            if (result.district) document.getElementById('district').value = result.district;
+            if (result.address) document.getElementById('address').value = result.address;
+            API.showToast(`Map centered to PIN ${clean}`, "info");
+          }
+        }, 500);
+      }
+    }
+
+    // Image Upload Handling
+    const dropzone = document.getElementById('dropzone');
+    const imageInput = document.getElementById('imageInput');
+    const uploadPrompt = document.getElementById('uploadPrompt');
+    const previewContainer = document.getElementById('previewContainer');
+    const imagePreview = document.getElementById('imagePreview');
+
+    dropzone.addEventListener('click', () => imageInput.click());
+
+    imageInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        selectedFile = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          imagePreview.src = event.target.result;
+          uploadPrompt.classList.add('hidden');
+          previewContainer.classList.remove('hidden');
+        };
+        reader.readAsDataURL(selectedFile);
+      }
+    });
+
+    function removeImage(e) {
+      e.stopPropagation();
+      selectedFile = null;
+      imageInput.value = '';
+      uploadPrompt.classList.remove('hidden');
+      previewContainer.classList.add('hidden');
+      imagePreview.src = '';
+    }
+
+    // Form Submission Workflow
+    document.getElementById('reportForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!selectedFile) {
+        API.showToast("Please upload a photo of the civic grievance.", "warning");
+        return;
+      }
+
+      const email = document.getElementById('citizenEmail').value.trim();
+      const name = document.getElementById('citizenName').value.trim();
+
+      if (!email || !name) {
+        API.showToast("Please provide your name and email address.", "warning");
+        return;
+      }
+
+      if (isUserLoggedIn) {
+        submitComplaintDirectly();
+        return;
+      }
+
+      triggerGuestOtpFlow(email);
+    });
+
+    async function submitComplaintDirectly() {
+      const submitBtn = document.getElementById('submitComplaintBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading to Cloudinary & Routing...';
+
+      const formData = buildFormData();
+
+      try {
+        await API.request('/complaints', 'POST', formData, true);
+        API.showToast("Complaint lodged successfully and routed!", "success");
+        setTimeout(() => {
+          window.location.href = 'user-dashboard.html';
+        }, 1000);
+      } catch (err) {
+        API.showToast(err.message || "Failed to submit grievance", "error");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Grievance to Dedicated Sub-Admin';
+      }
+    }
+
+    async function triggerGuestOtpFlow(email) {
+      const submitBtn = document.getElementById('submitComplaintBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Dispatching Email OTP...';
+
+      try {
+        const res = await API.request('/auth/send-otp', 'POST', {
+          email,
+          purpose: 'Grievance Submission',
+        });
+
+        document.getElementById('modalEmailDisplay').innerText = email;
+        const devNotice = document.getElementById('modalDevOtpNotice');
+        if (res.devOtp) {
+          devNotice.classList.remove('hidden');
+          devNotice.innerHTML = `Dev Mode OTP: <strong class="font-mono text-sm">${res.devOtp}</strong> (Auto-filled)`;
+          document.getElementById('modalOtpInput').value = res.devOtp;
+        } else {
+          devNotice.classList.add('hidden');
+        }
+
+        document.getElementById('otpModal').classList.remove('hidden');
+      } catch (err) {
+        API.showToast(err.message || "Failed to dispatch email OTP", "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Grievance to Dedicated Sub-Admin';
+      }
+    }
+
+    function closeOtpModal() {
+      document.getElementById('otpModal').classList.add('hidden');
+    }
+
+    async function resendModalOTP() {
+      const email = document.getElementById('citizenEmail').value.trim();
+      const btn = document.getElementById('modalResendBtn');
+      btn.innerText = 'Sending...';
+      try {
+        const res = await API.request('/auth/send-otp', 'POST', { email, purpose: 'Grievance Submission' });
+        API.showToast("New OTP sent to your email!", "success");
+        btn.innerText = 'Resend OTP';
+        if (res.devOtp) {
+          document.getElementById('modalOtpInput').value = res.devOtp;
+        }
+      } catch(e) {
+        API.showToast(e.message, "error");
+        btn.innerText = 'Resend OTP';
+      }
+    }
+
+    document.getElementById('otpVerifyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const otp = document.getElementById('modalOtpInput').value.trim();
+      const btn = document.getElementById('modalVerifyBtn');
+
+      if (!otp || otp.length < 6) {
+        API.showToast("Please enter the 6-digit OTP sent to your email.", "warning");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying & Uploading...';
+
+      const formData = buildFormData();
+      formData.append('otp', otp);
+      formData.append('name', document.getElementById('citizenName').value.trim());
+      formData.append('email', document.getElementById('citizenEmail').value.trim());
+
+      try {
+        const res = await API.request('/complaints/submit-with-otp', 'POST', formData, true);
+        
+        API.setAuth(res.token, res.user, 'citizen');
+        API.showToast("Email verified, account registered & grievance lodged!", "success");
+        
+        closeOtpModal();
+        setTimeout(() => {
+          window.location.href = 'user-dashboard.html';
+        }, 1000);
+      } catch (err) {
+        API.showToast(err.message || "OTP verification failed", "error");
+        btn.disabled = false;
+        btn.innerText = 'Confirm OTP & Lodge Grievance';
+      }
+    });
+
+    function buildFormData() {
+      const formData = new FormData();
+      formData.append('title', document.getElementById('title').value.trim());
+      formData.append('description', document.getElementById('description').value.trim());
+      formData.append('category', document.getElementById('category').value);
+      formData.append('priority', document.getElementById('priority').value);
+      formData.append('pincode', document.getElementById('pincode').value.trim());
+      formData.append('district', document.getElementById('district').value.trim());
+      formData.append('address', document.getElementById('address').value.trim());
+      formData.append('latitude', document.getElementById('latitude').value);
+      formData.append('longitude', document.getElementById('longitude').value);
+      formData.append('image', selectedFile);
+      return formData;
+    }
+  </script>
+</body>
+</html>

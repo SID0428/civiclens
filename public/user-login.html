@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen Sign In | CivicLens</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col justify-between font-sans text-slate-800 antialiased selection:bg-sky-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="p-6">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <a href="index.html" class="flex items-center space-x-2.5 group">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-md shadow-sky-500/20 group-hover:scale-105 transition">
+          <i class="fa-solid fa-camera-retro"></i>
+        </div>
+        <span class="text-xl font-extrabold text-slate-900 tracking-tight">Civic<span class="text-sky-600">Lens</span></span>
+      </a>
+      <a href="index.html" class="text-xs font-semibold text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to Home
+      </a>
+    </div>
+  </header>
+
+  <!-- Login Card -->
+  <main class="flex-1 flex items-center justify-center px-4 py-8">
+    <div class="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-xl shadow-slate-200/60 border border-slate-200/80">
+      
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 text-xl mb-3">
+          <i class="fa-solid fa-user-check"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Citizen Sign In</h1>
+        <p class="text-xs text-slate-500 mt-1">Track your local civic grievances and get live updates</p>
+      </div>
+
+      <!-- Google OAuth Sign-In Button -->
+      <div class="mb-6">
+        <button id="customGoogleBtn" type="button" onclick="handleSimulatedOrRealGoogle()" class="w-full py-3 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition flex items-center justify-center gap-3 shadow-sm hover:shadow">
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          Continue with Google
+        </button>
+      </div>
+
+      <!-- Divider -->
+      <div class="relative flex py-2 items-center mb-6">
+        <div class="flex-grow border-t border-slate-200"></div>
+        <span class="flex-shrink mx-4 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Or with email</span>
+        <div class="flex-grow border-t border-slate-200"></div>
+      </div>
+
+      <!-- Form -->
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Email Address</label>
+          <div class="relative">
+            <i class="fa-solid fa-envelope absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+            <input type="email" id="email" required placeholder="name@example.com" class="w-full pl-9 pr-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1.5">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
+            <a href="user-signup.html" class="text-xs text-sky-600 hover:underline">Forgot?</a>
+          </div>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+            <input type="password" id="password" required placeholder="••••••••" class="w-full pl-9 pr-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+          </div>
+        </div>
+
+        <button type="submit" id="submitBtn" class="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-500/20 hover:shadow-lg transition">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Bottom Sign Up Link -->
+      <div class="text-center mt-6 pt-6 border-t border-slate-100 text-xs text-slate-500">
+        New to CivicLens? 
+        <a href="user-signup.html" class="font-bold text-sky-600 hover:underline ml-1">Create Account (Email OTP)</a>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="p-6 text-center text-xs text-slate-400">
+    &copy; 2026 CivicLens &bull; Smart Citizen Grievance Portal
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('submitBtn');
+
+      btn.disabled = true;
+      btn.innerText = 'Signing in...';
+
+      try {
+        const res = await API.request('/auth/user-login', 'POST', { email, password });
+        API.setAuth(res.token, res.user, 'citizen');
+        API.showToast('Welcome back, ' + res.user.name + '!', 'success');
+        setTimeout(() => {
+          window.location.href = 'user-dashboard.html';
+        }, 800);
+      } catch (err) {
+        API.showToast(err.message || 'Login failed. Please check your credentials.', 'error');
+        btn.disabled = false;
+        btn.innerText = 'Sign In';
+      }
+    });
+
+    async function handleSimulatedOrRealGoogle() {
+      const email = prompt("Enter Google Account Email for instant sign-in:", "citizen@gmail.com");
+      if (!email) return;
+
+      try {
+        const res = await API.request('/auth/google', 'POST', {
+          userInfo: {
+            email: email,
+            name: email.split('@')[0],
+            picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
+          }
+        });
+        API.setAuth(res.token, res.user, 'citizen');
+        API.showToast("Signed in via Google successfully!", "success");
+        setTimeout(() => {
+          window.location.href = 'user-dashboard.html';
+        }, 800);
+      } catch (err) {
+        API.showToast(err.message || "Google sign-in error", "error");
+      }
+    }
+  </script>
+</body>
+</html>

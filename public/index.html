@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CivicLens — Smart Civic Grievance Redressal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              200: '#bae0fd',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              800: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glass-nav {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .gradient-hero {
+      background: radial-gradient(120% 120% at 50% 0%, rgba(2, 132, 199, 0.08) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+    }
+  </style>
+</head>
+<body class="bg-white text-slate-800 font-sans antialiased selection:bg-sky-500 selection:text-white">
+
+  <!-- TOP ANNOUNCEMENT -->
+  <div class="bg-sky-50 text-sky-800 text-xs py-2 px-4 border-b border-sky-100">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-2 mx-auto sm:mx-0">
+        <span class="flex h-2 w-2 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-sky-600"></span>
+        </span>
+        <span class="font-semibold">Smart India Hackathon 2026</span>
+        <span class="text-sky-300 hidden sm:inline">&bull;</span>
+        <span class="hidden sm:inline text-sky-700">Next-Gen Municipal Grievance Tracking Engine</span>
+      </div>
+      <div class="hidden sm:block text-xs font-medium text-sky-600">
+        GPS Reverse Geocoding &bull; Pincode Auto-Routing
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVIGATION BAR -->
+  <nav class="sticky top-0 z-40 glass-nav border-b border-slate-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-20">
+        <!-- Logo -->
+        <a href="index.html" class="flex items-center space-x-3 group">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-600 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-sky-500/20 group-hover:scale-105 transition">
+            <i class="fa-solid fa-camera-retro"></i>
+          </div>
+          <div>
+            <span class="text-2xl font-black tracking-tight text-slate-900">Civic<span class="text-sky-600">Lens</span></span>
+            <span class="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Citizen Grievance Redressal</span>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <div class="hidden md:flex items-center space-x-8 text-sm font-semibold text-slate-600">
+          <a href="#how-it-works" class="hover:text-sky-600 transition">How It Works</a>
+          <a href="#categories" class="hover:text-sky-600 transition">Issue Categories</a>
+          <a href="#impact" class="hover:text-sky-600 transition">Live Redressal</a>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center space-x-3">
+          <div id="authNavButtons" class="flex items-center space-x-3">
+            <a href="user-login.html" class="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-sky-600 transition">
+              Sign In
+            </a>
+            <a href="report-issue.html" class="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold shadow-sm shadow-sky-500/20 hover:shadow-md transition flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle"></i>
+              Report Issue
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO SECTION -->
+  <section class="relative pt-16 pb-24 gradient-hero overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto space-y-6">
+        
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200/80 shadow-sm text-slate-700 text-xs font-bold">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          Direct Pincode-to-Officer Redressal Platform
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
+          Report Local Civic Hazards. <br>
+          <span class="bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">Get Real Redressal Fast.</span>
+        </h1>
+
+        <p class="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
+          Snap a photo of broken roads, garbage dumps, or water leakages. CivicLens extracts exact GPS coordinates, auto-resolves your district PIN code, and forwards it directly to the designated department officer.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
+          <a href="report-issue.html" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shadow-lg shadow-sky-600/25 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2.5">
+            <i class="fa-solid fa-camera"></i>
+            Report an Issue (Auto-GPS)
+          </a>
+          <a href="user-signup.html" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 shadow-sm hover:shadow transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-shield-halved text-sky-600"></i>
+            Citizen Sign Up (Email OTP)
+          </a>
+        </div>
+
+        <!-- Metrics Strip -->
+        <div class="grid grid-cols-3 gap-6 pt-12 max-w-xl mx-auto border-t border-slate-200/60">
+          <div>
+            <div class="text-2xl sm:text-3xl font-black text-slate-900">100%</div>
+            <div class="text-xs font-semibold text-slate-500 mt-0.5">GPS Geotagged</div>
+          </div>
+          <div>
+            <div class="text-2xl sm:text-3xl font-black text-sky-600">Auto</div>
+            <div class="text-xs font-semibold text-slate-500 mt-0.5">Pincode Routing</div>
+          </div>
+          <div>
+            <div class="text-2xl sm:text-3xl font-black text-emerald-600">&lt; 48h</div>
+            <div class="text-xs font-semibold text-slate-500 mt-0.5">Standard Redressal</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS SECTION -->
+  <section id="how-it-works" class="py-20 bg-slate-50 border-y border-slate-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-600">Transparent & Fast</span>
+        <h2 class="text-3xl font-extrabold text-slate-900">How CivicLens Works</h2>
+        <p class="text-sm text-slate-500">From citizen camera to district ground-team resolution in 3 seamless steps.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Step 1 -->
+        <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm feature-card transition duration-200">
+          <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold mb-6">
+            <i class="fa-solid fa-location-crosshairs"></i>
+          </div>
+          <span class="text-xs font-bold text-sky-600 uppercase tracking-wider">Step 1</span>
+          <h3 class="text-lg font-bold text-slate-900 mt-1 mb-2">Snap Photo & Auto-GPS</h3>
+          <p class="text-slate-500 text-sm leading-relaxed">
+            Upload the civic issue photo. The system accesses device hardware GPS and reverse-geocodes the exact postal PIN code and landmark.
+          </p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm feature-card transition duration-200">
+          <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-bold mb-6">
+            <i class="fa-solid fa-network-wired"></i>
+          </div>
+          <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Step 2</span>
+          <h3 class="text-lg font-bold text-slate-900 mt-1 mb-2">Pincode-Based Officer Dispatch</h3>
+          <p class="text-slate-500 text-sm leading-relaxed">
+            The complaint is mapped to the designated District Sub-Admin responsible for that specific PIN code and municipal department.
+          </p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm feature-card transition duration-200">
+          <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold mb-6">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Step 3</span>
+          <h3 class="text-lg font-bold text-slate-900 mt-1 mb-2">Verified Resolution Proof</h3>
+          <p class="text-slate-500 text-sm leading-relaxed">
+            The officer updates status, dispatches field contractors, and uploads verified "After" photos to Cloudinary to close the grievance.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORIES -->
+  <section id="categories" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-600">Covered Civic Areas</span>
+        <h2 class="text-3xl font-extrabold text-slate-900">What Can You Report?</h2>
+        <p class="text-sm text-slate-500">Every issue is directed to the specialized department team.</p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <!-- 1 -->
+        <a href="report-issue.html" class="p-6 rounded-2xl border border-slate-200 hover:border-sky-500 hover:shadow-md transition text-center group bg-white">
+          <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mx-auto mb-3 group-hover:scale-110 transition">
+            <i class="fa-solid fa-road"></i>
+          </div>
+          <div class="font-bold text-sm text-slate-800">Roads & Potholes</div>
+          <div class="text-[11px] text-slate-400 mt-1">PWD</div>
+        </a>
+
+        <!-- 2 -->
+        <a href="report-issue.html" class="p-6 rounded-2xl border border-slate-200 hover:border-sky-500 hover:shadow-md transition text-center group bg-white">
+          <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl mx-auto mb-3 group-hover:scale-110 transition">
+            <i class="fa-solid fa-trash-can"></i>
+          </div>
+          <div class="font-bold text-sm text-slate-800">Garbage Dumps</div>
+          <div class="text-[11px] text-slate-400 mt-1">Sanitation</div>
+        </a>
+
+        <!-- 3 -->
+        <a href="report-issue.html" class="p-6 rounded-2xl border border-slate-200 hover:border-sky-500 hover:shadow-md transition text-center group bg-white">
+          <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl mx-auto mb-3 group-hover:scale-110 transition">
+            <i class="fa-solid fa-faucet-drip"></i>
+          </div>
+          <div class="font-bold text-sm text-slate-800">Water Leakage</div>
+          <div class="text-[11px] text-slate-400 mt-1">Jal Board</div>
+        </a>
+
+        <!-- 4 -->
+        <a href="report-issue.html" class="p-6 rounded-2xl border border-slate-200 hover:border-sky-500 hover:shadow-md transition text-center group bg-white">
+          <div class="w-12 h-12 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-xl mx-auto mb-3 group-hover:scale-110 transition">
+            <i class="fa-solid fa-lightbulb"></i>
+          </div>
+          <div class="font-bold text-sm text-slate-800">Streetlights</div>
+          <div class="text-[11px] text-slate-400 mt-1">Electricity</div>
+        </a>
+
+        <!-- 5 -->
+        <a href="report-issue.html" class="p-6 rounded-2xl border border-slate-200 hover:border-sky-500 hover:shadow-md transition text-center group bg-white">
+          <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl mx-auto mb-3 group-hover:scale-110 transition">
+            <i class="fa-solid fa-bridge"></i>
+          </div>
+          <div class="font-bold text-sm text-slate-800">Public Infra</div>
+          <div class="text-[11px] text-slate-400 mt-1">Urban Dept</div>
+        </a>
+
+        <!-- 6 -->
+        <a href="report-issue.html" class="p-6 rounded-2xl border border-slate-200 hover:border-sky-500 hover:shadow-md transition text-center group bg-white">
+          <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl mx-auto mb-3 group-hover:scale-110 transition">
+            <i class="fa-solid fa-traffic-light"></i>
+          </div>
+          <div class="font-bold text-sm text-slate-800">Encroachments</div>
+          <div class="text-[11px] text-slate-400 mt-1">Traffic Board</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <section id="impact" class="py-16 bg-gradient-to-r from-sky-600 to-blue-700 text-white">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-6">
+      <h2 class="text-3xl sm:text-4xl font-black">Make Your Neighborhood Cleaner & Safer</h2>
+      <p class="text-sky-100 text-base max-w-xl mx-auto">
+        Join thousands of proactive citizens using CivicLens to track real civic improvements with complete transparency.
+      </p>
+      <div class="pt-2 flex flex-col sm:flex-row justify-center items-center gap-4">
+        <a href="report-issue.html" class="px-8 py-3.5 bg-white hover:bg-slate-100 text-sky-800 font-bold text-sm rounded-xl shadow-lg transition">
+          Report an Issue Right Now
+        </a>
+        <a href="user-signup.html" class="px-8 py-3.5 bg-sky-800/60 hover:bg-sky-800/80 border border-sky-400/40 text-white font-bold text-sm rounded-xl transition">
+          Create Citizen Account
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 text-slate-400 text-sm py-12 border-t border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-6 pb-8 border-b border-slate-800">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-sky-600 flex items-center justify-center text-white text-base font-bold">
+            <i class="fa-solid fa-camera-retro"></i>
+          </div>
+          <span class="text-lg font-bold text-white">CivicLens</span>
+        </div>
+        
+        <div class="flex items-center space-x-6 text-xs font-semibold">
+          <a href="user-login.html" class="hover:text-white transition">Citizen Login</a>
+          <a href="user-signup.html" class="hover:text-white transition">Sign Up (OTP)</a>
+          <a href="report-issue.html" class="hover:text-white transition">File Grievance</a>
+          <!-- Discreet Admin Portal Link in Footer for Authorized Staff Only -->
+          <a href="admin-login.html" class="text-slate-500 hover:text-sky-400 transition">Officer Portal</a>
+        </div>
+      </div>
+
+      <div class="pt-8 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500 gap-3">
+        <div>&copy; 2026 CivicLens &bull; Smart India Hackathon (SIH) 2026 Project.</div>
+        <div class="flex space-x-4">
+          <a href="#" class="hover:text-slate-400">Privacy Policy</a>
+          <a href="#" class="hover:text-slate-400">Terms of Redressal</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = API.getUser();
+      const role = API.getRole();
+      if (user && role) {
+        const authNav = document.getElementById('authNavButtons');
+        const dashboardLink = role === 'citizen' 
+          ? 'user-dashboard.html' 
+          : role === 'subadmin' 
+            ? 'admin-dashboard.html' 
+            : 'superadmin-dashboard.html';
+        
+        authNav.innerHTML = `
+          <a href="${dashboardLink}" class="px-4 py-2 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-grid-2"></i> ${user.name.split(' ')[0]}'s Dashboard
+          </a>
+          <button onclick="API.logout()" class="px-2.5 py-2 text-xs font-semibold text-slate-500 hover:text-red-600 transition">
+            Log Out
+          </button>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>
