@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import https from 'https';
-import http from 'http';
 import { connectDB } from './config/db';
 import User from './models/User';
 import authRoutes from './routes/authRoutes';
@@ -80,14 +79,14 @@ app.listen(PORT, () => {
 
   // Self-Ping Heartbeat: Keep Render 24/7 awake by pinging itself every 10 minutes
   const backendUrl = process.env.RENDER_EXTERNAL_URL || 'https://civiclens-ez72.onrender.com';
-  if (backendUrl.startsWith('https://')) {
+  if (backendUrl && backendUrl.startsWith('https://')) {
     console.log(`[Keep-Alive] 24/7 Self-ping enabled for: ${backendUrl}/api/health`);
     setInterval(() => {
       https.get(`${backendUrl}/api/health`, (res) => {
-        console.log(`[Keep-Alive Ping] Heartbeat sent to Render. Status: ${res.statusCode}`);
+        console.log(`[Keep-Alive Ping] Heartbeat status: ${res.statusCode}`);
       }).on('error', (e) => {
         console.warn(`[Keep-Alive Ping Warning]: ${e.message}`);
       });
-    }, 10 * 60 * 1000); // Every 10 minutes (before Render's 15 min sleep limit)
+    }, 10 * 60 * 1000);
   }
 });
