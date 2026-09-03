@@ -1,8 +1,8 @@
 // CivicLens API Configuration
-// Replace with your Render Backend URL after deployment (e.g., https://civiclens-backend.onrender.com)
+// Connected to Live Render Backend
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:5000/api'
-  : '/api'; // Relative in production or replace with Render backend URL
+  : 'https://civiclens-ez72.onrender.com/api';
 
 const API = {
   // Get Stored Token
@@ -75,7 +75,7 @@ const API = {
     const bgColors = {
       success: 'bg-emerald-600',
       error: 'bg-rose-600',
-      info: 'bg-blue-600',
+      info: 'bg-sky-600',
       warning: 'bg-amber-600',
     };
     const icon = {
@@ -85,8 +85,8 @@ const API = {
       warning: '⚠',
     };
 
-    toast.className = `fixed bottom-5 right-5 z-50 flex items-center space-x-3 px-5 py-3.5 text-white rounded-xl shadow-2xl transition-all transform translate-y-2 opacity-0 text-sm font-medium ${bgColors[type] || bgColors.info}`;
-    toast.innerHTML = `<span class="font-bold">${icon[type] || 'ℹ'}</span><span>${message}</span>`;
+    toast.className = `fixed bottom-5 right-5 z-50 flex items-center space-x-3 px-5 py-3.5 text-white rounded-xl shadow-2xl transition-all transform translate-y-2 opacity-0 text-xs font-semibold ${bgColors[type] || bgColors.info}`;
+    toast.innerHTML = `<span class="font-bold text-sm">${icon[type] || 'ℹ'}</span><span>${message}</span>`;
     document.body.appendChild(toast);
 
     setTimeout(() => {

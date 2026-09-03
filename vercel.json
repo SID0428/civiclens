@@ -4,7 +4,7 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "routes": [
-    { "src": "/api/(.*)", "dest": "https://civiclens-backend.onrender.com/api/$1" },
+    { "src": "/api/(.*)", "dest": "https://civiclens-ez72.onrender.com/api/$1" },
     { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
