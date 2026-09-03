@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Satellite, ShieldCheck, Trash2, Send, CheckCircle2, Activity, RefreshCw } from 'lucide-react';
+import { Camera, MapPin, Satellite, ShieldCheck, Trash2, Send, CheckCircle2, Activity, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
 import { API } from '../services/api';
 import { GeoService, FusedPosition } from '../services/geo';
 import { CameraModal } from '../components/CameraModal';
@@ -63,18 +63,17 @@ export const ReportIssue: React.FC = () => {
     setGpsLoading(true);
     setGpsDenied(false);
 
-    if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
 
-    const id = GeoService.watchFusedLocation(
+    const { watchId } = GeoService.startLiveTracking(
       (pos: FusedPosition) => {
-        handleNewPosition(
-          pos.lat,
-          pos.lng,
-          pos.accuracy
-        );
+        handleNewPosition(pos.lat, pos.lng, pos.accuracy);
       },
       (err: GeolocationPositionError) => {
-        console.warn('GPS watch error:', err);
+        console.warn('GPS error callback:', err);
         setGpsLoading(false);
         if (err.code === 1) {
           setGpsDenied(true);
@@ -82,19 +81,10 @@ export const ReportIssue: React.FC = () => {
       }
     );
 
-    if (id === null) {
-      setGpsDenied(true);
-      setGpsLoading(false);
-    } else {
-      watchIdRef.current = id;
-    }
+    watchIdRef.current = watchId;
   };
 
-  const handleNewPosition = async (
-    lat: number,
-    lng: number,
-    acc: number
-  ) => {
+  const handleNewPosition = async (lat: number, lng: number, acc: number) => {
     if (prevLatRef.current !== null && prevLatRef.current !== lat) {
       setIsLatPulsing(true);
       setTimeout(() => setIsLatPulsing(false), 500);
@@ -110,7 +100,6 @@ export const ReportIssue: React.FC = () => {
     setLiveLat(lat);
     setLiveLng(lng);
     setAccuracy(acc);
-
     setGpsLoading(false);
     setGpsDenied(false);
     setUpdateCount((prev) => prev + 1);
@@ -134,7 +123,7 @@ export const ReportIssue: React.FC = () => {
     e.preventDefault();
 
     if (liveLat === null || liveLng === null) {
-      alert('Strict GPS Location is mandatory! Please enable location permissions.');
+      alert('Strict GPS Location is mandatory! Please click "Allow Location" to continue.');
       startGpsTracking();
       return;
     }
@@ -287,7 +276,9 @@ export const ReportIssue: React.FC = () => {
                     Live GPS Telemetry HUD
                   </h3>
                 </div>
-                <p className="text-[11px] text-slate-500">Continuous hardware stream &bull; Ping #{updateCount}</p>
+                <p className="text-[11px] text-slate-500">
+                  {gpsLoading ? 'Acquiring high-accuracy hardware sensor...' : `Continuous hardware stream • Ping #${updateCount}`}
+                </p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -297,10 +288,27 @@ export const ReportIssue: React.FC = () => {
                   className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5"
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Sync GPS</span>
+                  <span>Sync / Refresh GPS</span>
                 </button>
               </div>
             </div>
+
+            {/* GPS Status Alert (If Denied or Loading) */}
+            {gpsDenied && (
+              <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <div className="flex items-center gap-2.5 text-xs text-rose-800 font-medium">
+                  <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                  <span>Location access is currently blocked. Please click allow or enable location in your browser.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={startGpsTracking}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow transition whitespace-nowrap"
+                >
+                  Allow Location Access
+                </button>
+              </div>
+            )}
 
             {/* BIG REAL-TIME DIGITS (LIGHT THEME) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -310,10 +318,19 @@ export const ReportIssue: React.FC = () => {
               }`}>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
                   <span>Current Latitude</span>
-                  <span className="text-emerald-600 font-mono text-[9px] font-bold">{isLatPulsing ? 'CHANGING' : 'STREAMING'}</span>
+                  <span className="text-emerald-600 font-mono text-[9px] font-bold">
+                    {liveLat !== null ? (isLatPulsing ? 'CHANGING' : 'LOCKED') : 'WAITING'}
+                  </span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1">
-                  {liveLat !== null ? liveLat.toFixed(6) : '00.000000'}
+                <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1 flex items-center gap-2">
+                  {liveLat !== null ? (
+                    liveLat.toFixed(6)
+                  ) : (
+                    <span className="text-sm font-sans text-slate-400 font-medium flex items-center gap-1.5">
+                      <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
+                      <span>Acquiring Sensor...</span>
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -323,10 +340,19 @@ export const ReportIssue: React.FC = () => {
               }`}>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
                   <span>Current Longitude</span>
-                  <span className="text-emerald-600 font-mono text-[9px] font-bold">{isLngPulsing ? 'CHANGING' : 'STREAMING'}</span>
+                  <span className="text-emerald-600 font-mono text-[9px] font-bold">
+                    {liveLng !== null ? (isLngPulsing ? 'CHANGING' : 'LOCKED') : 'WAITING'}
+                  </span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1">
-                  {liveLng !== null ? liveLng.toFixed(6) : '00.000000'}
+                <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1 flex items-center gap-2">
+                  {liveLng !== null ? (
+                    liveLng.toFixed(6)
+                  ) : (
+                    <span className="text-sm font-sans text-slate-400 font-medium flex items-center gap-1.5">
+                      <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
+                      <span>Acquiring Sensor...</span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -338,7 +364,7 @@ export const ReportIssue: React.FC = () => {
                 <span className="text-xs font-bold text-slate-700">Live GPS Precision:</span>
               </div>
               <div className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                &plusmn;{accuracy} meters
+                {liveLat !== null ? `±${accuracy} meters` : 'Calibrating...'}
               </div>
             </div>
 
@@ -389,7 +415,14 @@ export const ReportIssue: React.FC = () => {
             </div>
 
             {/* Live Map with Accuracy Radius */}
-            {liveLat && liveLng && <MapView lat={liveLat} lng={liveLng} accuracy={accuracy} />}
+            {liveLat && liveLng ? (
+              <MapView lat={liveLat} lng={liveLng} accuracy={accuracy} />
+            ) : (
+              <div className="h-48 rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-400 text-xs space-y-2">
+                <MapPin className="w-6 h-6 text-slate-300 animate-bounce" />
+                <span>Map will render when GPS permission is granted</span>
+              </div>
+            )}
           </div>
 
           {/* Live Camera Section */}
