@@ -3,10 +3,9 @@ const User = require('../models/User');
 const cloudinary = require('../config/cloudinary');
 const jwt = require('jsonwebtoken');
 
-// Helper to stream upload image buffer to Cloudinary
 const uploadToCloudinary = (buffer, folder = 'civiclens/complaints') => {
   return new Promise((resolve, reject) => {
-    if (!process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME === 'your_cloudinary_cloud_name') {
+    if (!process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME === 'demo') {
       const base64 = `data:image/jpeg;base64,${buffer.toString('base64')}`;
       return resolve({ secure_url: base64 });
     }
@@ -26,11 +25,10 @@ const generateToken = (id, role) => {
   return jwt.sign(
     { id, role },
     process.env.JWT_SECRET || 'civiclens_super_secret_jwt_key_2026_sih',
-    { expiresIn: process.env.JWT_EXPIRE || '7d' }
+    { expiresIn: '7d' }
   );
 };
 
-// Helper to create and route complaint
 const createComplaintRecord = async ({
   title,
   description,
@@ -46,17 +44,15 @@ const createComplaintRecord = async ({
   citizenUser,
 }) => {
   const cleanPincode = (pincode || '').toString().trim();
-  const latNum = parseFloat(latitude);
-  const lngNum = parseFloat(longitude);
+  const latNum = parseFloat(latitude.toString());
+  const lngNum = parseFloat(longitude.toString());
 
-  if (isNaN(latNum) || isNaN(lngNum) || !latitude || !longitude) {
-    throw new Error('Strict GPS Coordinates (Latitude and Longitude) are mandatory for grievance lodgement.');
+  if (isNaN(latNum) || isNaN(lngNum)) {
+    throw new Error('Strict GPS Coordinates are mandatory for grievance lodgement.');
   }
 
-  // Primary image
   const primaryImageUrl = images && images.length > 0 ? images[0].url : '';
 
-  // Auto-Routing: Find Sub-Admin mapped to this pincode and/or category
   let assignedAdmin = await User.findOne({
     role: 'subadmin',
     assignedPincodes: cleanPincode,
@@ -94,7 +90,7 @@ const createComplaintRecord = async ({
       {
         status: 'Pending',
         message: assignedAdmin
-          ? `Grievance registered with GPS (${latNum.toFixed(5)}, ${lngNum.toFixed(5)}) and routed to District Officer (${assignedAdmin.name}) for PIN ${cleanPincode}`
+          ? `Grievance registered with GPS (${latNum.toFixed(5)}, ${lngNum.toFixed(5)}) and auto-routed to District Officer (${assignedAdmin.name}) for PIN ${cleanPincode}`
           : `Grievance registered with GPS (${latNum.toFixed(5)}, ${lngNum.toFixed(5)}) for PIN ${cleanPincode}. Awaiting assignment.`,
         updatedBy: citizenUser._id,
         updaterRole: 'citizen',
@@ -106,11 +102,10 @@ const createComplaintRecord = async ({
   return { complaint, assignedAdmin };
 };
 
-// Process multiple uploaded files into Cloudinary URLs
 const processUploadedImages = async (files, reqBodyLat, reqBodyLng) => {
   const images = [];
-  const lat = parseFloat(reqBodyLat);
-  const lng = parseFloat(reqBodyLng);
+  const lat = parseFloat(reqBodyLat.toString());
+  const lng = parseFloat(reqBodyLng.toString());
 
   if (files && files.length > 0) {
     for (const file of files) {
@@ -126,9 +121,7 @@ const processUploadedImages = async (files, reqBodyLat, reqBodyLng) => {
   return images;
 };
 
-// @desc    1. Create a New Complaint with Geotagged Photos (Logged In Citizen)
-// @route   POST /api/complaints
-// @access  Private (Citizen)
+// 1. Create Complaint
 exports.createComplaint = async (req, res) => {
   try {
     const {
@@ -147,7 +140,7 @@ exports.createComplaint = async (req, res) => {
     if (!latitude || !longitude || isNaN(parseFloat(latitude)) || isNaN(parseFloat(longitude))) {
       return res.status(400).json({
         success: false,
-        message: 'Strict GPS Location is mandatory. Please capture location before submitting.',
+        message: 'Strict GPS Location is mandatory.',
       });
     }
 
@@ -162,7 +155,7 @@ exports.createComplaint = async (req, res) => {
     if (files.length === 0 && !req.body.imageUrl) {
       return res.status(400).json({
         success: false,
-        message: 'At least one live geotagged photo of the civic issue is required.',
+        message: 'At least one live geotagged photo is required.',
       });
     }
 
@@ -185,7 +178,7 @@ exports.createComplaint = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Grievance with geotagged photo(s) lodged and routed to District Officer!',
+      message: 'Grievance lodged and routed to District Officer!',
       complaint,
     });
   } catch (error) {
@@ -194,9 +187,7 @@ exports.createComplaint = async (req, res) => {
   }
 };
 
-// @desc    2. Guest Citizen Submit with Email OTP & Geotagged Photos
-// @route   POST /api/complaints/submit-with-otp
-// @access  Public
+// 2. Submit with OTP
 exports.submitComplaintWithOTP = async (req, res) => {
   try {
     const {
@@ -216,10 +207,7 @@ exports.submitComplaintWithOTP = async (req, res) => {
     } = req.body;
 
     if (!latitude || !longitude || isNaN(parseFloat(latitude)) || isNaN(parseFloat(longitude))) {
-      return res.status(400).json({
-        success: false,
-        message: 'Strict GPS Location is mandatory. Photos must have geotag coordinates.',
-      });
+      return res.status(400).json({ success: false, message: 'Strict GPS Location is mandatory.' });
     }
 
     if (!email || !otp) {
@@ -230,13 +218,9 @@ exports.submitComplaintWithOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Title, description, and pincode are required.' });
     }
 
-    // Verify OTP
     let user = await User.findOne({ email });
     if (!user || !user.otp || !user.otp.code) {
-      return res.status(400).json({
-        success: false,
-        message: 'No OTP found for this email. Please click "Send OTP" first.',
-      });
+      return res.status(400).json({ success: false, message: 'No OTP found for this email. Please send OTP first.' });
     }
 
     if (new Date() > new Date(user.otp.expiresAt)) {
@@ -244,7 +228,7 @@ exports.submitComplaintWithOTP = async (req, res) => {
     }
 
     if (user.otp.code !== otp.trim()) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP code. Please enter the correct 6 digits.' });
+      return res.status(400).json({ success: false, message: 'Invalid OTP code.' });
     }
 
     user.name = name || user.name || email.split('@')[0];
@@ -252,7 +236,6 @@ exports.submitComplaintWithOTP = async (req, res) => {
     user.otp = undefined;
     await user.save();
 
-    // Process multiple geotagged photos
     const files = req.files || (req.file ? [req.file] : []);
     if (files.length === 0 && !req.body.imageUrl) {
       return res.status(400).json({ success: false, message: 'Live geotagged photo is required.' });
@@ -279,7 +262,7 @@ exports.submitComplaintWithOTP = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Email verified, geotagged photos uploaded & grievance lodged!',
+      message: 'Email verified & grievance lodged!',
       token,
       user: {
         id: user._id,
@@ -296,55 +279,36 @@ exports.submitComplaintWithOTP = async (req, res) => {
   }
 };
 
-// @desc    3. Get Citizen's own complaints
-// @route   GET /api/complaints/my
-// @access  Private (Citizen)
+// 3. Get My Complaints
 exports.getMyComplaints = async (req, res) => {
   try {
     const complaints = await Complaint.find({ citizen: req.user._id })
       .populate('assignedSubAdmin', 'name email department phone officialId')
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      count: complaints.length,
-      complaints,
-    });
+    res.status(200).json({ success: true, count: complaints.length, complaints });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    4. Get Public Live Complaints
-// @route   GET /api/complaints/public
-// @access  Public
+// 4. Public feed
 exports.getPublicComplaints = async (req, res) => {
   try {
     const { pincode, category, status } = req.query;
     const query = {};
-
     if (pincode) query.pincode = pincode;
     if (category && category !== 'All') query.category = category;
     if (status && status !== 'All') query.status = status;
 
-    const complaints = await Complaint.find(query)
-      .select('-citizen')
-      .sort({ createdAt: -1 })
-      .limit(50);
-
-    res.status(200).json({
-      success: true,
-      count: complaints.length,
-      complaints,
-    });
+    const complaints = await Complaint.find(query).select('-citizen').sort({ createdAt: -1 }).limit(50);
+    res.status(200).json({ success: true, count: complaints.length, complaints });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    5. Get Complaints for Sub-Admin
-// @route   GET /api/complaints/subadmin
-// @access  Private (Sub-Admin)
+// 5. Sub-Admin Complaints
 exports.getSubAdminComplaints = async (req, res) => {
   try {
     const subAdmin = req.user;
@@ -357,29 +321,18 @@ exports.getSubAdminComplaints = async (req, res) => {
       ],
     };
 
-    const complaints = await Complaint.find(query)
-      .populate('citizen', 'name email phone')
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: complaints.length,
-      assignedPincodes: pincodes,
-      complaints,
-    });
+    const complaints = await Complaint.find(query).populate('citizen', 'name email phone').sort({ createdAt: -1 });
+    res.status(200).json({ success: true, count: complaints.length, assignedPincodes: pincodes, complaints });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    6. Get All Complaints (Super-Admin)
-// @route   GET /api/complaints/superadmin
-// @access  Private (Super-Admin)
+// 6. Super-Admin Complaints
 exports.getSuperAdminComplaints = async (req, res) => {
   try {
     const { pincode, district, status, category } = req.query;
     const query = {};
-
     if (pincode) query.pincode = pincode;
     if (district) query.district = new RegExp(district, 'i');
     if (status && status !== 'All') query.status = status;
@@ -390,19 +343,13 @@ exports.getSuperAdminComplaints = async (req, res) => {
       .populate('assignedSubAdmin', 'name email department officialId')
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      count: complaints.length,
-      complaints,
-    });
+    res.status(200).json({ success: true, count: complaints.length, complaints });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    7. Update Complaint Status & Resolution Proof
-// @route   PUT /api/complaints/:id/status
-// @access  Private (Sub-Admin, Super-Admin)
+// 7. Update Status
 exports.updateComplaintStatus = async (req, res) => {
   try {
     const { status, resolutionNotes } = req.body;
@@ -414,7 +361,7 @@ exports.updateComplaintStatus = async (req, res) => {
 
     if (req.user.role === 'subadmin') {
       const hasPincode = req.user.assignedPincodes.includes(complaint.pincode);
-      const isDirectlyAssigned = complaint.assignedSubAdmin?.toString() === req.user._id.toString();
+      const isDirectlyAssigned = complaint.assignedSubAdmin && complaint.assignedSubAdmin.toString() === req.user._id.toString();
       if (!hasPincode && !isDirectlyAssigned) {
         return res.status(403).json({
           success: false,
@@ -443,11 +390,7 @@ exports.updateComplaintStatus = async (req, res) => {
 
     await complaint.save();
 
-    res.status(200).json({
-      success: true,
-      message: `Complaint marked as ${complaint.status}`,
-      complaint,
-    });
+    res.status(200).json({ success: true, message: `Complaint marked as ${complaint.status}`, complaint });
   } catch (error) {
     console.error('Update Complaint Error:', error);
     res.status(500).json({ success: false, message: error.message });

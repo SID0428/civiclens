@@ -12,20 +12,20 @@ const {
 const { protect, authorize } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// Public live feed / map
+// Public live feed
 router.get('/public', getPublicComplaints);
 
 // Public / Guest Submit with Email OTP & Geotagged Photos
 router.post('/submit-with-otp', upload.array('images', 5), submitComplaintWithOTP);
 
-// Logged In Citizen Route (Supports multiple geotagged photos)
+// Logged In Citizen Routes
 router.post('/', protect, authorize('citizen'), upload.array('images', 5), createComplaint);
 router.get('/my', protect, authorize('citizen'), getMyComplaints);
 
-// Sub-Admin routes (District Pincode Scoped)
+// Sub-Admin Routes
 router.get('/subadmin', protect, authorize('subadmin'), getSubAdminComplaints);
 
-// Super-Admin routes (Global)
+// Super-Admin Routes
 router.get('/superadmin', protect, authorize('superadmin'), getSuperAdminComplaints);
 
 // Update status & resolution proof
