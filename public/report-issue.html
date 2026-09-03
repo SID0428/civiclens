@@ -53,10 +53,10 @@
       <!-- Header -->
       <div class="mb-8 border-b border-slate-100 pb-6">
         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold mb-2">
-          <i class="fa-solid fa-camera-viewfinder text-sky-600"></i> Live On-Site Camera Only &bull; Strict GPS Verification
+          <i class="fa-solid fa-camera-viewfinder text-sky-600"></i> Live Camera Only &bull; Strict GPS Verification
         </div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Report a Civic Issue</h1>
-        <p class="text-xs sm:text-sm text-slate-500 mt-1">To eliminate fake reports, only live camera photos with real-time GPS coordinates are accepted.</p>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">Live camera capture is strictly locked until verified GPS location is enabled.</p>
       </div>
 
       <!-- Form -->
@@ -97,13 +97,13 @@
             <div>
               <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                 <i class="fa-solid fa-location-crosshairs text-sky-600"></i>
-                1. GPS Coordinates (Strictly Required)
+                Step 1: Enable GPS Location (Strictly Required)
               </h3>
-              <p class="text-[11px] text-slate-500">Coordinates are stamped permanently on every live photo for official Sub-Admin verification</p>
+              <p class="text-[11px] text-slate-500">Camera shutter remains locked until your real-time GPS location is enabled</p>
             </div>
             <button type="button" id="detectGpsBtn" onclick="autoDetectLocation()" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition flex items-center justify-center gap-1.5">
               <i class="fa-solid fa-crosshairs"></i>
-              <span>Refresh GPS Lock</span>
+              <span>Enable / Refresh GPS</span>
             </button>
           </div>
 
@@ -118,8 +118,9 @@
             </div>
           </div>
 
-          <div id="gpsStatusMsg" class="text-xs p-2.5 rounded-xl bg-sky-50 text-sky-800 border border-sky-200">
-            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Locking GPS coordinates...
+          <div id="gpsStatusMsg" class="text-xs p-3 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 flex items-center gap-2 font-medium">
+            <i class="fa-solid fa-lock text-amber-600 text-sm"></i>
+            <span>GPS is not enabled. Please click <strong>"Enable / Refresh GPS"</strong> or select on map to unlock the camera.</span>
           </div>
 
           <!-- Pincode & District Fields -->
@@ -159,33 +160,36 @@
           <!-- Map Preview -->
           <div class="rounded-xl overflow-hidden border border-slate-200 shadow-inner h-48 w-full z-10" id="map"></div>
           <div class="flex justify-between items-center text-[11px] text-slate-400">
-            <span id="coordsBadge" class="font-mono text-sky-800 font-bold">GPS: Not Locked</span>
-            <span class="italic text-[10px] text-sky-700">Click anywhere on map to reposition pin</span>
+            <span id="coordsBadge" class="font-mono text-slate-500">GPS: Not Enabled</span>
+            <span class="italic text-[10px] text-sky-700">Click anywhere on map to establish location</span>
           </div>
         </div>
 
-        <!-- LIVE CAMERA ONLY (NO DEVICE UPLOADS) -->
+        <!-- LIVE CAMERA ONLY (STRICTLY LOCKED UNTIL GPS IS ENABLED) -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
             <div>
               <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider">
-                2. Live Camera Capture Only <span class="text-red-500">*</span>
+                Step 2: Live Camera Capture <span class="text-red-500">*</span>
               </label>
-              <p class="text-[11px] text-slate-500">Gallery uploads are disabled to prevent stale/fake media. Take real-time live photos (up to 5).</p>
+              <p class="text-[11px] text-slate-500">Only real-time live photos are permitted (up to 5). Camera unlocks only when GPS is active.</p>
             </div>
-            <span id="photoCountBadge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200">
+            <span id="photoCountBadge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 border border-slate-200">
               0 / 5 Photos Taken
             </span>
           </div>
 
-          <!-- Single Prominent Live Camera Action Button -->
+          <!-- Dynamic Camera Button (Locked / Unlocked) -->
           <div>
-            <button type="button" onclick="openLiveCameraModal()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-bold text-sm shadow-md shadow-sky-500/20 hover:shadow-lg transition flex items-center justify-center gap-3 group">
-              <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-base group-hover:scale-110 transition">
-                <i class="fa-solid fa-camera"></i>
+            <button type="button" id="cameraActionBtn" disabled onclick="handleCameraBtnClick()" class="w-full py-4 px-6 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xs transition flex items-center justify-center gap-3 cursor-not-allowed opacity-75">
+              <div id="camBtnIconWrap" class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-lock text-slate-400"></i>
               </div>
-              <span>Open Live Camera (Capture Geotagged Photo)</span>
+              <span id="camBtnText">GPS Location Required to Enable Camera</span>
             </button>
+            <p id="camLockNotice" class="text-[11px] text-amber-700 mt-1.5 text-center font-medium bg-amber-50 p-2 rounded-xl border border-amber-200">
+              <i class="fa-solid fa-lock mr-1"></i> Live camera capture is disabled until GPS location is enabled in Step 1.
+            </p>
           </div>
 
           <!-- Geotagged Photos Gallery Preview -->
@@ -196,14 +200,14 @@
           <div id="noPhotosPrompt" class="text-center py-6 border-2 border-dashed border-slate-200 rounded-2xl text-xs text-slate-400 space-y-1">
             <i class="fa-solid fa-camera-viewfinder text-slate-300 text-3xl mb-1 block"></i>
             <div class="font-bold text-slate-600">No live photos captured yet</div>
-            <p class="text-[11px]">Click "Open Live Camera" above to take verified on-site photos</p>
+            <p class="text-[11px]">Enable GPS location above to unlock the live camera</p>
           </div>
         </div>
 
         <!-- Issue Title & Description -->
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-            3. Issue Title <span class="text-red-500">*</span>
+            Step 3: Issue Title <span class="text-red-500">*</span>
           </label>
           <input type="text" id="title" required placeholder="e.g. Hazardous open manhole & broken road causing accidents" class="w-full px-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
         </div>
@@ -281,7 +285,7 @@
       </div>
 
       <div class="flex justify-center pt-2">
-        <button type="button" onclick="captureLivePhoto()" class="w-16 h-16 rounded-full bg-sky-600 hover:bg-sky-700 text-white text-2xl flex items-center justify-center shadow-lg shadow-sky-600/30 transition transform active:scale-95 border-4 border-white">
+        <button type="button" id="shutterTriggerBtn" onclick="captureLivePhoto()" class="w-16 h-16 rounded-full bg-sky-600 hover:bg-sky-700 text-white text-2xl flex items-center justify-center shadow-lg shadow-sky-600/30 transition transform active:scale-95 border-4 border-white">
           <i class="fa-solid fa-camera"></i>
         </button>
       </div>
@@ -334,7 +338,7 @@
   <script src="js/geo.js"></script>
   <script>
     let map, marker;
-    let capturedPhotos = []; // Array of { file, dataUrl, lat, lng, timestamp }
+    let capturedPhotos = [];
     let debounceTimer;
     let isUserLoggedIn = false;
     let cameraStream = null;
@@ -391,11 +395,58 @@
       document.getElementById('longitude').value = lng;
       gpsLocked = true;
       document.getElementById('coordsBadge').innerText = `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      document.getElementById('coordsBadge').className = 'font-mono text-sky-800 font-bold';
       
       const camGps = document.getElementById('camGpsOverlay');
       if (camGps) {
         camGps.innerText = `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)} (PIN: ${document.getElementById('pincode').value || '...'})`;
       }
+
+      unlockCameraUI(lat, lng);
+    }
+
+    function unlockCameraUI(lat, lng) {
+      const btn = document.getElementById('cameraActionBtn');
+      const iconWrap = document.getElementById('camBtnIconWrap');
+      const textEl = document.getElementById('camBtnText');
+      const notice = document.getElementById('camLockNotice');
+      const badge = document.getElementById('photoCountBadge');
+      const statusMsg = document.getElementById('gpsStatusMsg');
+
+      btn.disabled = false;
+      btn.className = 'w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-bold text-sm shadow-md shadow-sky-500/20 hover:shadow-lg transition flex items-center justify-center gap-3 cursor-pointer group opacity-100';
+      iconWrap.className = 'w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm group-hover:scale-110 transition';
+      iconWrap.innerHTML = '<i class="fa-solid fa-camera"></i>';
+      textEl.innerText = 'Open Live Camera (GPS Verified & Ready)';
+      
+      notice.className = 'text-[11px] text-emerald-800 mt-1.5 text-center font-bold flex items-center justify-center gap-1 bg-emerald-50 p-2 rounded-xl border border-emerald-200';
+      notice.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> GPS Location Locked (${lat.toFixed(5)}, ${lng.toFixed(5)}) &bull; Live Camera Unlocked`;
+
+      statusMsg.className = 'text-xs p-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold flex items-center gap-2';
+      statusMsg.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i> <span>Verified GPS Locked (${lat.toFixed(5)}, ${lng.toFixed(5)}) &bull; Camera is enabled.</span>`;
+
+      badge.className = 'text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200';
+    }
+
+    function lockCameraUI() {
+      gpsLocked = false;
+      const btn = document.getElementById('cameraActionBtn');
+      const iconWrap = document.getElementById('camBtnIconWrap');
+      const textEl = document.getElementById('camBtnText');
+      const notice = document.getElementById('camLockNotice');
+      const statusMsg = document.getElementById('gpsStatusMsg');
+
+      btn.disabled = true;
+      btn.className = 'w-full py-4 px-6 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xs transition flex items-center justify-center gap-3 cursor-not-allowed opacity-75';
+      iconWrap.className = 'w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm';
+      iconWrap.innerHTML = '<i class="fa-solid fa-lock text-slate-400"></i>';
+      textEl.innerText = 'GPS Location Required to Enable Camera';
+
+      notice.className = 'text-[11px] text-amber-800 mt-1.5 text-center font-medium bg-amber-50 p-2 rounded-xl border border-amber-200';
+      notice.innerHTML = '<i class="fa-solid fa-lock mr-1"></i> Live camera capture is strictly disabled until GPS location is enabled.';
+
+      statusMsg.className = 'text-xs p-3 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 flex items-center gap-2 font-medium';
+      statusMsg.innerHTML = '<i class="fa-solid fa-lock text-amber-600 text-sm"></i> <span>GPS is disabled. Click <strong>"Enable / Refresh GPS"</strong> or select on map to unlock the camera.</span>';
     }
 
     async function fetchAddressForCoords(lat, lng) {
@@ -421,7 +472,7 @@
         if (result.pincode) document.getElementById('pincode').value = result.pincode;
         if (result.district) document.getElementById('district').value = result.district;
         if (result.address) document.getElementById('address').value = result.address;
-        API.showToast("GPS Location locked to landmark!", "success");
+        API.showToast("GPS Location locked & camera unlocked!", "success");
       } else {
         API.showToast("Could not find that landmark. Try typing the 6-digit Pincode directly.", "warning");
       }
@@ -433,8 +484,6 @@
       
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Locking GPS...';
-      statusEl.className = 'text-xs p-2.5 rounded-xl bg-sky-50 text-sky-800 border border-sky-200';
-      statusEl.innerText = 'Locking device GPS & reverse-geocoding postal pincode...';
 
       try {
         const loc = await Geo.getCurrentPosition();
@@ -451,16 +500,11 @@
           if (geo.district) document.getElementById('district').value = geo.district;
           if (geo.address) document.getElementById('address').value = geo.address;
         }
-
-        const detectedPin = document.getElementById('pincode').value;
-        statusEl.className = 'text-xs p-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold';
-        statusEl.innerHTML = `✓ Verified GPS Locked (${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}) & PIN ${detectedPin || ''} mapped.`;
       } catch (err) {
-        statusEl.className = 'text-xs p-2.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200';
-        statusEl.innerHTML = `Please select your location on the map or type PIN to establish GPS lock.`;
+        lockCameraUI();
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-crosshairs"></i> Refresh GPS Lock';
+        btn.innerHTML = '<i class="fa-solid fa-crosshairs"></i> Enable / Refresh GPS';
       }
     }
 
@@ -479,17 +523,25 @@
             initMap(result.lat, result.lng);
             if (result.district) document.getElementById('district').value = result.district;
             if (result.address) document.getElementById('address').value = result.address;
-            API.showToast(`GPS locked to PIN ${clean}`, "success");
+            API.showToast(`GPS locked to PIN ${clean} & camera unlocked!`, "success");
           }
         }, 500);
       }
     }
 
-    // --- LIVE CAMERA STREAM HANDLING (ONLY) ---
+    function handleCameraBtnClick() {
+      if (!gpsLocked || !document.getElementById('latitude').value) {
+        API.showToast("⚠️ GPS is not enabled! Please enable GPS in Step 1 first.", "error");
+        autoDetectLocation();
+        return;
+      }
+      openLiveCameraModal();
+    }
+
     async function openLiveCameraModal() {
-      if (!gpsLocked) {
-        API.showToast("Please lock GPS location before capturing photos.", "warning");
-        await autoDetectLocation();
+      if (!gpsLocked || !document.getElementById('latitude').value) {
+        API.showToast("⚠️ GPS Location is mandatory before opening camera.", "error");
+        return;
       }
 
       const modal = document.getElementById('cameraModal');
@@ -523,8 +575,13 @@
       document.getElementById('cameraModal').classList.add('hidden');
     }
 
-    // Capture from Live Video Stream and Watermark with GPS
     async function captureLivePhoto() {
+      if (!gpsLocked || !document.getElementById('latitude').value) {
+        API.showToast("⚠️ GPS is not enabled! Image capture blocked.", "error");
+        closeLiveCameraModal();
+        return;
+      }
+
       if (capturedPhotos.length >= 5) {
         API.showToast("Maximum 5 photos allowed per grievance.", "warning");
         closeLiveCameraModal();
@@ -538,12 +595,10 @@
       canvas.width = video.videoWidth || 1280;
       canvas.height = video.videoHeight || 720;
 
-      // Draw original video frame
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Stamp Geotag Watermark onto canvas
-      const lat = parseFloat(document.getElementById('latitude').value || '28.6139');
-      const lng = parseFloat(document.getElementById('longitude').value || '77.2090');
+      const lat = parseFloat(document.getElementById('latitude').value);
+      const lng = parseFloat(document.getElementById('longitude').value);
       const pincode = document.getElementById('pincode').value || '';
       const address = document.getElementById('address').value || '';
       const dateStr = new Date().toLocaleString('en-IN');
@@ -569,7 +624,6 @@
       }, 'image/jpeg', 0.92);
     }
 
-    // Canvas GPS Watermark Helper
     function stampGpsWatermark(ctx, width, height, lat, lng, pin, addr, dateStr) {
       const barHeight = Math.max(70, Math.floor(height * 0.12));
       ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
@@ -771,7 +825,6 @@
       formData.append('latitude', document.getElementById('latitude').value);
       formData.append('longitude', document.getElementById('longitude').value);
 
-      // Append all live captured geotagged photos
       capturedPhotos.forEach((photoObj) => {
         formData.append('images', photoObj.file);
       });
