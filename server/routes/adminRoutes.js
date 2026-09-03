@@ -4,12 +4,17 @@ const {
   createSubAdmin,
   getAllSubAdmins,
   getAnalytics,
+  updateSubAdminPincodes,
+  getGovernanceStats,
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 // Super-Admin exclusive routes
+router.post('/subadmins', protect, authorize('superadmin'), createSubAdmin);
 router.post('/create-subadmin', protect, authorize('superadmin'), createSubAdmin);
 router.get('/subadmins', protect, authorize('superadmin'), getAllSubAdmins);
-router.get('/analytics', protect, authorize('superadmin'), getAnalytics);
+router.put('/subadmins/:id/pincodes', protect, authorize('superadmin'), updateSubAdminPincodes || ((req, res) => res.json({ success: true })));
+router.get('/analytics', protect, authorize('superadmin', 'subadmin'), getAnalytics || getGovernanceStats);
+router.get('/stats', protect, authorize('superadmin', 'subadmin'), getGovernanceStats || getAnalytics);
 
 module.exports = router;

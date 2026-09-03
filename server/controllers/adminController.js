@@ -144,3 +144,8 @@ exports.getAnalytics = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// Aliases for TypeScript frontend compatibility
+if (typeof exports.getAnalytics === 'function') {
+  exports.getGovernanceStats = exports.getAnalytics;
+}

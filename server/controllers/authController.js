@@ -14,8 +14,8 @@ const generate6DigitOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// 1. Send OTP Email
-exports.sendEmailOTP = async (req, res) => {
+// 1. Send OTP Email (Supports sendEmailOTP and sendRegistrationOTP)
+const sendEmailOTP = async (req, res) => {
   try {
     const { email, purpose = 'Verification' } = req.body;
     if (!email) {
@@ -52,7 +52,7 @@ exports.sendEmailOTP = async (req, res) => {
 };
 
 // 2. Verify OTP & Citizen Signup
-exports.verifyOTPAndSignup = async (req, res) => {
+const verifyOTPAndSignup = async (req, res) => {
   try {
     const { name, email, otp, phone, password } = req.body;
     if (!email || !otp) {
@@ -98,8 +98,8 @@ exports.verifyOTPAndSignup = async (req, res) => {
   }
 };
 
-// 3. Login with Password
-exports.loginWithPassword = async (req, res) => {
+// 3. Login with Password (Handles citizen, subadmin, superadmin)
+const loginWithPassword = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -136,7 +136,7 @@ exports.loginWithPassword = async (req, res) => {
 };
 
 // 4. Google Auth
-exports.googleAuth = async (req, res) => {
+const googleAuth = async (req, res) => {
   try {
     const { email, name, googleId, avatar } = req.body;
     if (!email) {
@@ -179,11 +179,24 @@ exports.googleAuth = async (req, res) => {
 };
 
 // 5. Get Current User Profile
-exports.getMe = async (req, res) => {
+const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     res.status(200).json({ success: true, user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
+};
+
+module.exports = {
+  sendEmailOTP,
+  sendRegistrationOTP: sendEmailOTP,
+  verifyOTPAndSignup,
+  registerWithOTP: verifyOTPAndSignup,
+  loginWithPassword,
+  userLogin: loginWithPassword,
+  adminLogin: loginWithPassword,
+  superAdminLogin: loginWithPassword,
+  googleAuth,
+  getMe,
 };

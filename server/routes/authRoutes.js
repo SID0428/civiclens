@@ -1,25 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const {
+  sendEmailOTP,
   sendRegistrationOTP,
+  verifyOTPAndSignup,
   registerWithOTP,
+  loginWithPassword,
   userLogin,
-  googleAuth,
   adminLogin,
   superAdminLogin,
+  googleAuth,
   getMe,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
-// Citizen Auth
-router.post('/send-otp', sendRegistrationOTP);
-router.post('/register-with-otp', registerWithOTP);
-router.post('/user-login', userLogin);
-router.post('/google', googleAuth);
+// Standard & Legacy OTP routes
+router.post('/send-otp', sendEmailOTP || sendRegistrationOTP);
+router.post('/verify-otp-signup', verifyOTPAndSignup || registerWithOTP);
+router.post('/register-with-otp', registerWithOTP || verifyOTPAndSignup);
 
-// Admin Auth
-router.post('/admin-login', adminLogin);
-router.post('/superadmin-login', superAdminLogin);
+// Login routes
+router.post('/login', loginWithPassword || userLogin);
+router.post('/user-login', userLogin || loginWithPassword);
+router.post('/admin-login', adminLogin || loginWithPassword);
+router.post('/superadmin-login', superAdminLogin || loginWithPassword);
+
+// Google OAuth
+router.post('/google', googleAuth);
 
 // Current User Profile
 router.get('/me', protect, getMe);
