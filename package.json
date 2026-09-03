@@ -3,8 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "postinstall": "cd server && npm install && npm run build",
-    "build": "cd server && npm install && npm run build",
-    "start": "node server/dist/server.js"
+    "build": "node -e \"const fs=require('fs'),cp=require('child_process'); if(fs.existsSync('server')){ cp.execSync('cd server && npm install && npm run build', {stdio:'inherit'}); } else { cp.execSync('npm run build', {stdio:'inherit'}); }\"",
+    "start": "node -e \"const fs=require('fs'),cp=require('child_process'); if(fs.existsSync('server/dist/server.js')){ require('./server/dist/server.js'); } else if(fs.existsSync('dist/server.js')){ require('./dist/server.js'); } else if(fs.existsSync('server/server.js')){ require('./server/server.js'); } else { require('./server.js'); }\""
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.3.1",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.13"
   }
 }
