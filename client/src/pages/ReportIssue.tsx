@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Satellite, ShieldCheck, Trash2, Send, CheckCircle2 } from 'lucide-react';
+import { Camera, MapPin, Satellite, ShieldCheck, Trash2, Send, CheckCircle2, Activity, Navigation } from 'lucide-react';
 import { API } from '../services/api';
 import { GeoService } from '../services/geo';
 import { CameraModal } from '../components/CameraModal';
@@ -14,9 +14,25 @@ interface PhotoItem {
   lng: number;
 }
 
+// Calculate distance in meters between two lat/lng coordinates (Haversine Formula)
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3; // Earth radius in meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return Math.round(R * c);
+}
+
 export const ReportIssue: React.FC = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(API.getUser());
+  const [user] = useState(API.getUser());
 
   // Form states
   const [name, setName] = useState(user?.name || '');
@@ -26,15 +42,21 @@ export const ReportIssue: React.FC = () => {
   const [category, setCategory] = useState('Roads & Potholes');
   const [priority, setPriority] = useState('Medium');
 
-  // Live GPS states
+  // Real-Time Live GPS states
   const [liveLat, setLiveLat] = useState<number | null>(null);
   const [liveLng, setLiveLng] = useState<number | null>(null);
   const [accuracy, setAccuracy] = useState<number>(0);
+  const [updateCount, setUpdateCount] = useState<number>(0);
+  const [distanceMoved, setDistanceMoved] = useState<number>(0);
   const [pincode, setPincode] = useState('');
   const [district, setDistrict] = useState('');
   const [address, setAddress] = useState('');
   const [gpsDenied, setGpsDenied] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(true);
+  const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('');
+  const [isCoordinatePulsing, setIsCoordinatePulsing] = useState<boolean>(false);
+
+  const initialLocationRef = useRef<{ lat: number; lng: number } | null>(null);
 
   // Photos & Modals
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
@@ -64,17 +86,36 @@ export const ReportIssue: React.FC = () => {
 
     if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
 
+    // Continuous Live Tracking with Maximum Accuracy
     watchIdRef.current = navigator.geolocation.watchPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         const acc = Math.round(pos.coords.accuracy || 5);
 
+        if (!initialLocationRef.current) {
+          initialLocationRef.current = { lat, lng };
+        } else {
+          const dist = calculateDistance(
+            initialLocationRef.current.lat,
+            initialLocationRef.current.lng,
+            lat,
+            lng
+          );
+          setDistanceMoved(dist);
+        }
+
         setLiveLat(lat);
         setLiveLng(lng);
         setAccuracy(acc);
         setGpsLoading(false);
         setGpsDenied(false);
+        setUpdateCount((prev) => prev + 1);
+        setLastUpdatedTime(new Date().toLocaleTimeString());
+
+        // Visual Pulse trigger
+        setIsCoordinatePulsing(true);
+        setTimeout(() => setIsCoordinatePulsing(false), 800);
 
         // Reverse Geocode
         const geo = await GeoService.reverseGeocode(lat, lng);
@@ -89,7 +130,11 @@ export const ReportIssue: React.FC = () => {
           setGpsDenied(true);
         }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0, // Force fresh live satellite/radio reads
+      }
     );
   };
 
@@ -116,7 +161,6 @@ export const ReportIssue: React.FC = () => {
     }
 
     if (!user) {
-      // Guest submit -> Send OTP
       setSubmitting(true);
       try {
         const res = await API.request('/auth/send-otp', 'POST', { email, purpose: 'Grievance Submission' });
@@ -128,7 +172,6 @@ export const ReportIssue: React.FC = () => {
         setSubmitting(false);
       }
     } else {
-      // Logged in citizen submit directly
       submitComplaintDirect();
     }
   };
@@ -196,12 +239,12 @@ export const ReportIssue: React.FC = () => {
         {/* Header */}
         <div className="border-b border-slate-100 pb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold mb-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Tamper-Proof Hardware GPS &bull; Live Camera Only</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Real-Time Sensor Tracking &bull; Continuous Dynamic GPS</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Report a Civic Issue</h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Manual location editing is disabled. Photos must be taken live on-site with active GPS tracking.
+            Coordinates continuously update as you walk and snapshot dynamically onto each photo canvas.
           </p>
         </div>
 
@@ -250,37 +293,79 @@ export const ReportIssue: React.FC = () => {
             </div>
           </div>
 
-          {/* Tamper-Proof GPS Section */}
-          <div className="bg-gradient-to-br from-slate-50 to-emerald-50/20 p-6 rounded-2xl border border-slate-200 space-y-4">
-            <div className="flex justify-between items-center">
+          {/* REAL-TIME DYNAMIC GPS SECTION */}
+          <div className="bg-gradient-to-br from-slate-50 to-emerald-50/30 p-6 rounded-2xl border border-slate-200 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
               <div>
                 <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Satellite className="w-4 h-4 text-emerald-600" />
-                  <span>Step 1: Live Hardware GPS (Tamper-Proof)</span>
+                  <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
+                  <span>Step 1: Real-Time Live Hardware GPS Stream</span>
                 </h3>
-                <p className="text-[11px] text-slate-500">Live sensor tracking only. Manual map dragging or address editing is disabled.</p>
+                <p className="text-[11px] text-slate-500">Live coordinates continuously follow your device movement</p>
               </div>
-              <button
-                type="button"
-                onClick={startGpsTracking}
-                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition"
-              >
-                Refresh GPS
-              </button>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold rounded-lg border border-emerald-300 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
+                  <span>SYNCED ({updateCount} updates)</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={startGpsTracking}
+                  className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition"
+                >
+                  Poll Fresh
+                </button>
+              </div>
             </div>
 
-            {/* GPS Status */}
-            <div className={`text-xs p-3 rounded-xl border flex justify-between items-center font-mono ${
+            {/* Live Movement & Accuracy Metric Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Live Sensor Accuracy</div>
+                <div className="text-sm font-black text-slate-900 mt-0.5 flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${accuracy <= 20 ? 'bg-emerald-500' : accuracy <= 60 ? 'bg-amber-500' : 'bg-sky-500'}`}></span>
+                  <span>&plusmn;{accuracy} meters</span>
+                </div>
+                <div className="text-[9px] text-slate-400 mt-0.5">
+                  {accuracy <= 20 ? '🎯 High-Precision GNSS' : '📡 CoreLocation / Wi-Fi Triangulation'}
+                </div>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Distance Traversed</div>
+                <div className="text-sm font-black text-emerald-700 mt-0.5 flex items-center gap-1">
+                  <Navigation className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{distanceMoved} meters</span>
+                </div>
+                <div className="text-[9px] text-slate-400 mt-0.5">From session starting point</div>
+              </div>
+
+              <div className="col-span-2 sm:col-span-1 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Last Sensor Ping</div>
+                <div className="text-xs font-mono font-bold text-slate-800 mt-0.5">{lastUpdatedTime || 'Connecting...'}</div>
+                <div className="text-[9px] text-emerald-600 mt-0.5 font-semibold">Continuous watchPosition() active</div>
+              </div>
+            </div>
+
+            {/* Live Dynamic Coordinates Bar with Pulse Animation */}
+            <div className={`text-xs p-3.5 rounded-xl border flex justify-between items-center font-mono transition-all duration-300 ${
+              isCoordinatePulsing ? 'bg-emerald-100/90 border-emerald-400 shadow-sm' :
               gpsDenied ? 'bg-rose-50 text-rose-900 border-rose-200' : 'bg-emerald-50 text-emerald-900 border-emerald-200'
             }`}>
               {gpsDenied ? (
                 <span>🚫 Location Permission Denied. Please allow location access in your browser.</span>
               ) : gpsLoading ? (
-                <span>Locking device GPS sensor...</span>
+                <span>Locking live device GPS sensor...</span>
               ) : (
                 <>
-                  <span>✓ Live GPS: {liveLat?.toFixed(6)}, {liveLng?.toFixed(6)}</span>
-                  <span className="text-[10px] font-sans font-bold">Accuracy: &plusmn;{accuracy}m</span>
+                  <span className="font-bold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span>Lat: {liveLat?.toFixed(6)}, Lng: {liveLng?.toFixed(6)}</span>
+                  </span>
+                  <span className="text-[11px] font-sans font-semibold text-emerald-800">
+                    PIN {pincode || 'Auto-mapping...'}
+                  </span>
                 </>
               )}
             </div>
@@ -290,7 +375,7 @@ export const ReportIssue: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex justify-between">
                   <span>District Pincode</span>
-                  <span className="text-[10px] text-emerald-700 font-bold">GPS Auto-Locked</span>
+                  <span className="text-[10px] text-emerald-700 font-bold">Auto-Locked</span>
                 </label>
                 <input
                   type="text"
@@ -304,7 +389,7 @@ export const ReportIssue: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex justify-between">
                   <span>District / City</span>
-                  <span className="text-[10px] text-emerald-700 font-bold">GPS Auto-Locked</span>
+                  <span className="text-[10px] text-emerald-700 font-bold">Auto-Locked</span>
                 </label>
                 <input
                   type="text"
@@ -320,19 +405,19 @@ export const ReportIssue: React.FC = () => {
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex justify-between">
                 <span>Street Address & Landmark</span>
-                <span className="text-[10px] text-emerald-700 font-bold">Verified On-Site</span>
+                <span className="text-[10px] text-emerald-700 font-bold">Verified Sensor GPS</span>
               </label>
               <input
                 type="text"
                 readOnly
                 value={address}
-                placeholder="Resolving address from live GPS sensor..."
+                placeholder="Resolving street location from live GPS..."
                 className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 cursor-not-allowed"
               />
             </div>
 
-            {/* Non-Draggable Map View */}
-            {liveLat && liveLng && <MapView lat={liveLat} lng={liveLng} />}
+            {/* Live Map with Accuracy Radius */}
+            {liveLat && liveLng && <MapView lat={liveLat} lng={liveLng} accuracy={accuracy} />}
           </div>
 
           {/* Live Camera Section */}
@@ -343,7 +428,7 @@ export const ReportIssue: React.FC = () => {
                   Step 2: Live Camera Capture *
                 </label>
                 <p className="text-[11px] text-slate-500">
-                  Photos snapshot the real-time sensor coordinates at the exact moment of capture.
+                  Each photo snapshots current live coordinates & unlocks tracking for subsequent shots.
                 </p>
               </div>
               <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200">
@@ -359,11 +444,11 @@ export const ReportIssue: React.FC = () => {
             >
               <Camera className="w-5 h-5" />
               <span>
-                {liveLat === null ? 'GPS Required to Enable Camera' : 'Open Live Camera (Sensor GPS Active)'}
+                {liveLat === null ? 'GPS Required to Enable Camera' : 'Open Live Camera (Real-Time Watermark)'}
               </span>
             </button>
 
-            {/* Photo Gallery */}
+            {/* Photo Gallery with Individual Geotags */}
             {photos.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
                 {photos.map((p, idx) => (
@@ -379,7 +464,7 @@ export const ReportIssue: React.FC = () => {
                       </button>
                     </div>
                     <div className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[10px] text-emerald-300 font-mono p-1.5 truncate">
-                      GPS: {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
+                      Snapshot: {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
                     </div>
                   </div>
                 ))}
