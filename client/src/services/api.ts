@@ -1,6 +1,6 @@
 import { User } from '../types';
 
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+export const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:5000/api'
   : 'https://civiclens-ez72.onrender.com/api';
 
@@ -25,6 +25,16 @@ export const API = {
     localStorage.removeItem('civiclens_user');
     localStorage.removeItem('civiclens_role');
     window.location.href = '/';
+  },
+
+  // Ping backend health check to keep Render awake
+  pingHealth: async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/health`, { method: 'GET' });
+      return res.ok;
+    } catch {
+      return false;
+    }
   },
 
   request: async (endpoint: string, method: string = 'GET', data: any = null, isFormData: boolean = false) => {
