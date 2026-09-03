@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Satellite, ShieldCheck, Trash2, Send, CheckCircle2, Activity, Navigation } from 'lucide-react';
+import { Camera, MapPin, Satellite, ShieldCheck, Trash2, Send, CheckCircle2, Activity, Navigation, Compass, Gauge, Footprints } from 'lucide-react';
 import { API } from '../services/api';
 import { GeoService } from '../services/geo';
 import { CameraModal } from '../components/CameraModal';
@@ -14,9 +14,8 @@ interface PhotoItem {
   lng: number;
 }
 
-// Calculate distance in meters between two lat/lng coordinates (Haversine Formula)
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371e3; // Earth radius in meters
+  const R = 6371e3;
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
@@ -27,7 +26,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
             Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-  return Math.round(R * c);
+  return parseFloat((R * c).toFixed(1));
 }
 
 export const ReportIssue: React.FC = () => {
@@ -42,10 +41,13 @@ export const ReportIssue: React.FC = () => {
   const [category, setCategory] = useState('Roads & Potholes');
   const [priority, setPriority] = useState('Medium');
 
-  // Real-Time Live GPS states
+  // Real-Time Live Sensor Telemetry
   const [liveLat, setLiveLat] = useState<number | null>(null);
   const [liveLng, setLiveLng] = useState<number | null>(null);
   const [accuracy, setAccuracy] = useState<number>(0);
+  const [speed, setSpeed] = useState<number>(0);
+  const [heading, setHeading] = useState<number | null>(null);
+  const [altitude, setAltitude] = useState<number | null>(null);
   const [updateCount, setUpdateCount] = useState<number>(0);
   const [distanceMoved, setDistanceMoved] = useState<number>(0);
   const [pincode, setPincode] = useState('');
@@ -53,10 +55,15 @@ export const ReportIssue: React.FC = () => {
   const [address, setAddress] = useState('');
   const [gpsDenied, setGpsDenied] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(true);
-  const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('');
-  const [isCoordinatePulsing, setIsCoordinatePulsing] = useState<boolean>(false);
+  const [isLatPulsing, setIsLatPulsing] = useState(false);
+  const [isLngPulsing, setIsLngPulsing] = useState(false);
+  const [isSimulatingWalk, setIsSimulatingWalk] = useState(false);
 
   const initialLocationRef = useRef<{ lat: number; lng: number } | null>(null);
+  const prevLatRef = useRef<number | null>(null);
+  const prevLngRef = useRef<number | null>(null);
+  const simIntervalRef = useRef<any>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   // Photos & Modals
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
@@ -65,12 +72,21 @@ export const ReportIssue: React.FC = () => {
   const [devOtp, setDevOtp] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
 
-  const watchIdRef = useRef<number | null>(null);
-
   useEffect(() => {
     startGpsTracking();
+
+    // Device Heading Compass Listener
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (e.alpha !== null) {
+        setHeading(Math.round(e.alpha));
+      }
+    };
+    window.addEventListener('deviceorientation', handleOrientation, true);
+
     return () => {
       if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+      if (simIntervalRef.current) clearInterval(simIntervalRef.current);
+      window.removeEventListener('deviceorientation', handleOrientation);
     };
   }, []);
 
@@ -86,42 +102,16 @@ export const ReportIssue: React.FC = () => {
 
     if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
 
-    // Continuous Live Tracking with Maximum Accuracy
     watchIdRef.current = navigator.geolocation.watchPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const acc = Math.round(pos.coords.accuracy || 5);
-
-        if (!initialLocationRef.current) {
-          initialLocationRef.current = { lat, lng };
-        } else {
-          const dist = calculateDistance(
-            initialLocationRef.current.lat,
-            initialLocationRef.current.lng,
-            lat,
-            lng
-          );
-          setDistanceMoved(dist);
-        }
-
-        setLiveLat(lat);
-        setLiveLng(lng);
-        setAccuracy(acc);
-        setGpsLoading(false);
-        setGpsDenied(false);
-        setUpdateCount((prev) => prev + 1);
-        setLastUpdatedTime(new Date().toLocaleTimeString());
-
-        // Visual Pulse trigger
-        setIsCoordinatePulsing(true);
-        setTimeout(() => setIsCoordinatePulsing(false), 800);
-
-        // Reverse Geocode
-        const geo = await GeoService.reverseGeocode(lat, lng);
-        if (geo.pincode) setPincode(geo.pincode);
-        if (geo.district) setDistrict(geo.district);
-        if (geo.address) setAddress(geo.address);
+      (pos) => {
+        handleNewPosition(
+          pos.coords.latitude,
+          pos.coords.longitude,
+          Math.round(pos.coords.accuracy || 5),
+          pos.coords.speed,
+          pos.coords.heading,
+          pos.coords.altitude
+        );
       },
       (err) => {
         console.warn('GPS watch error:', err);
@@ -132,10 +122,86 @@ export const ReportIssue: React.FC = () => {
       },
       {
         enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0, // Force fresh live satellite/radio reads
+        timeout: 10000,
+        maximumAge: 0,
       }
     );
+  };
+
+  const handleNewPosition = async (
+    lat: number,
+    lng: number,
+    acc: number,
+    spd: number | null = null,
+    hdg: number | null = null,
+    alt: number | null = null
+  ) => {
+    if (prevLatRef.current !== null && prevLatRef.current !== lat) {
+      setIsLatPulsing(true);
+      setTimeout(() => setIsLatPulsing(false), 500);
+    }
+    if (prevLngRef.current !== null && prevLngRef.current !== lng) {
+      setIsLngPulsing(true);
+      setTimeout(() => setIsLngPulsing(false), 500);
+    }
+
+    prevLatRef.current = lat;
+    prevLngRef.current = lng;
+
+    if (!initialLocationRef.current) {
+      initialLocationRef.current = { lat, lng };
+    } else {
+      const dist = calculateDistance(
+        initialLocationRef.current.lat,
+        initialLocationRef.current.lng,
+        lat,
+        lng
+      );
+      setDistanceMoved(dist);
+    }
+
+    setLiveLat(lat);
+    setLiveLng(lng);
+    setAccuracy(acc);
+    setSpeed(spd !== null ? Math.round(spd * 3.6) : 0); // Convert m/s to km/h
+    if (hdg !== null) setHeading(Math.round(hdg));
+    if (alt !== null) setAltitude(Math.round(alt));
+
+    setGpsLoading(false);
+    setGpsDenied(false);
+    setUpdateCount((prev) => prev + 1);
+
+    // Reverse Geocode when location shifts
+    const geo = await GeoService.reverseGeocode(lat, lng);
+    if (geo.pincode) setPincode(geo.pincode);
+    if (geo.district) setDistrict(geo.district);
+    if (geo.address) setAddress(geo.address);
+  };
+
+  // Toggle walk simulator (useful for testing on stationary laptops)
+  const toggleWalkSimulator = () => {
+    if (isSimulatingWalk) {
+      clearInterval(simIntervalRef.current);
+      setIsSimulatingWalk(false);
+      startGpsTracking();
+    } else {
+      setIsSimulatingWalk(true);
+      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+
+      let currentSimLat = liveLat || 28.613945;
+      let currentSimLng = liveLng || 77.209023;
+
+      simIntervalRef.current = setInterval(() => {
+        // Move ~1.5 meters in random direction
+        const deltaLat = (Math.random() - 0.48) * 0.000035;
+        const deltaLng = (Math.random() - 0.48) * 0.000035;
+
+        currentSimLat += deltaLat;
+        currentSimLng += deltaLng;
+
+        handleNewPosition(currentSimLat, currentSimLng, 4, 1.4, Math.floor(Math.random() * 360));
+      }, 700);
+    }
   };
 
   const handlePhotoCaptured = (file: File, dataUrl: string, lat: number, lng: number) => {
@@ -239,17 +305,17 @@ export const ReportIssue: React.FC = () => {
         {/* Header */}
         <div className="border-b border-slate-100 pb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold mb-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Real-Time Sensor Tracking &bull; Continuous Dynamic GPS</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>Continuous Real-Time Telemetry Active</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Report a Civic Issue</h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Coordinates continuously update as you walk and snapshot dynamically onto each photo canvas.
+            Watch your coordinates update live as you move across the site.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Citizen Info */}
+          {/* Citizen Details */}
           <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Citizen Details</span>
@@ -293,130 +359,138 @@ export const ReportIssue: React.FC = () => {
             </div>
           </div>
 
-          {/* REAL-TIME DYNAMIC GPS SECTION */}
-          <div className="bg-gradient-to-br from-slate-50 to-emerald-50/30 p-6 rounded-2xl border border-slate-200 space-y-4">
+          {/* REAL-TIME LIVE GPS TELEMETRY HUD */}
+          <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-5">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
               <div>
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
-                  <span>Step 1: Real-Time Live Hardware GPS Stream</span>
-                </h3>
-                <p className="text-[11px] text-slate-500">Live coordinates continuously follow your device movement</p>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-emerald-400">
+                    Live GPS Telemetry HUD
+                  </h3>
+                </div>
+                <p className="text-[11px] text-slate-400">Continuous hardware stream &bull; Ping #{updateCount}</p>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold rounded-lg border border-emerald-300 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
-                  <span>SYNCED ({updateCount} updates)</span>
-                </span>
+                <button
+                  type="button"
+                  onClick={toggleWalkSimulator}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
+                    isSimulatingWalk
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                  }`}
+                >
+                  <Footprints className="w-3.5 h-3.5" />
+                  <span>{isSimulatingWalk ? 'Simulating Walking (Live)' : 'Test Walk Motion'}</span>
+                </button>
                 <button
                   type="button"
                   onClick={startGpsTracking}
-                  className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition"
+                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl shadow transition"
                 >
-                  Poll Fresh
+                  Sync
                 </button>
               </div>
             </div>
 
-            {/* Live Movement & Accuracy Metric Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Live Sensor Accuracy</div>
-                <div className="text-sm font-black text-slate-900 mt-0.5 flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${accuracy <= 20 ? 'bg-emerald-500' : accuracy <= 60 ? 'bg-amber-500' : 'bg-sky-500'}`}></span>
-                  <span>&plusmn;{accuracy} meters</span>
+            {/* BIG REAL-TIME DIGITS (LATITUDE & LONGITUDE) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Latitude Card */}
+              <div className={`p-4 rounded-2xl border transition-all duration-300 ${
+                isLatPulsing ? 'bg-emerald-950/80 border-emerald-400 shadow-lg shadow-emerald-500/20 scale-[1.02]' : 'bg-slate-800/80 border-slate-700'
+              }`}>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
+                  <span>Current Latitude</span>
+                  <span className="text-emerald-400 font-mono text-[9px]">{isLatPulsing ? 'CHANGING' : 'STREAMING'}</span>
                 </div>
-                <div className="text-[9px] text-slate-400 mt-0.5">
-                  {accuracy <= 20 ? '🎯 High-Precision GNSS' : '📡 CoreLocation / Wi-Fi Triangulation'}
+                <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white mt-1">
+                  {liveLat !== null ? liveLat.toFixed(6) : '00.000000'}
                 </div>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Distance Traversed</div>
-                <div className="text-sm font-black text-emerald-700 mt-0.5 flex items-center gap-1">
-                  <Navigation className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{distanceMoved} meters</span>
+              {/* Longitude Card */}
+              <div className={`p-4 rounded-2xl border transition-all duration-300 ${
+                isLngPulsing ? 'bg-emerald-950/80 border-emerald-400 shadow-lg shadow-emerald-500/20 scale-[1.02]' : 'bg-slate-800/80 border-slate-700'
+              }`}>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
+                  <span>Current Longitude</span>
+                  <span className="text-emerald-400 font-mono text-[9px]">{isLngPulsing ? 'CHANGING' : 'STREAMING'}</span>
                 </div>
-                <div className="text-[9px] text-slate-400 mt-0.5">From session starting point</div>
-              </div>
-
-              <div className="col-span-2 sm:col-span-1 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Last Sensor Ping</div>
-                <div className="text-xs font-mono font-bold text-slate-800 mt-0.5">{lastUpdatedTime || 'Connecting...'}</div>
-                <div className="text-[9px] text-emerald-600 mt-0.5 font-semibold">Continuous watchPosition() active</div>
+                <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white mt-1">
+                  {liveLng !== null ? liveLng.toFixed(6) : '00.000000'}
+                </div>
               </div>
             </div>
 
-            {/* Live Dynamic Coordinates Bar with Pulse Animation */}
-            <div className={`text-xs p-3.5 rounded-xl border flex justify-between items-center font-mono transition-all duration-300 ${
-              isCoordinatePulsing ? 'bg-emerald-100/90 border-emerald-400 shadow-sm' :
-              gpsDenied ? 'bg-rose-50 text-rose-900 border-rose-200' : 'bg-emerald-50 text-emerald-900 border-emerald-200'
-            }`}>
-              {gpsDenied ? (
-                <span>🚫 Location Permission Denied. Please allow location access in your browser.</span>
-              ) : gpsLoading ? (
-                <span>Locking live device GPS sensor...</span>
-              ) : (
-                <>
-                  <span className="font-bold flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                    <span>Lat: {liveLat?.toFixed(6)}, Lng: {liveLng?.toFixed(6)}</span>
-                  </span>
-                  <span className="text-[11px] font-sans font-semibold text-emerald-800">
-                    PIN {pincode || 'Auto-mapping...'}
-                  </span>
-                </>
-              )}
+            {/* Secondary Telemetry (Accuracy, Speed, Distance, Heading) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/60">
+                <div className="text-[9px] text-slate-400 uppercase font-bold flex items-center justify-center gap-1">
+                  <Activity className="w-3 h-3 text-sky-400" />
+                  <span>Accuracy</span>
+                </div>
+                <div className="text-sm font-black text-white mt-0.5 font-mono">&plusmn;{accuracy}m</div>
+              </div>
+
+              <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/60">
+                <div className="text-[9px] text-slate-400 uppercase font-bold flex items-center justify-center gap-1">
+                  <Footprints className="w-3 h-3 text-emerald-400" />
+                  <span>Distance Moved</span>
+                </div>
+                <div className="text-sm font-black text-emerald-400 mt-0.5 font-mono">{distanceMoved} m</div>
+              </div>
+
+              <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/60">
+                <div className="text-[9px] text-slate-400 uppercase font-bold flex items-center justify-center gap-1">
+                  <Gauge className="w-3 h-3 text-amber-400" />
+                  <span>Speed</span>
+                </div>
+                <div className="text-sm font-black text-white mt-0.5 font-mono">{speed} km/h</div>
+              </div>
+
+              <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/60">
+                <div className="text-[9px] text-slate-400 uppercase font-bold flex items-center justify-center gap-1">
+                  <Compass className="w-3 h-3 text-purple-400" />
+                  <span>Heading</span>
+                </div>
+                <div className="text-sm font-black text-white mt-0.5 font-mono">{heading !== null ? `${heading}°` : 'N/A'}</div>
+              </div>
             </div>
 
             {/* Read-Only Location Fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex justify-between">
-                  <span>District Pincode</span>
-                  <span className="text-[10px] text-emerald-700 font-bold">Auto-Locked</span>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 flex justify-between">
+                  <span>Postal PIN Code</span>
+                  <span className="text-emerald-400">Sensor Mapped</span>
                 </label>
                 <input
                   type="text"
                   readOnly
                   value={pincode}
-                  placeholder="Auto-locked by GPS..."
-                  className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-bold text-emerald-900 cursor-not-allowed"
+                  placeholder="Auto-detected PIN..."
+                  className="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono font-bold text-emerald-300 cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex justify-between">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 flex justify-between">
                   <span>District / City</span>
-                  <span className="text-[10px] text-emerald-700 font-bold">Auto-Locked</span>
+                  <span className="text-emerald-400">Sensor Mapped</span>
                 </label>
                 <input
                   type="text"
                   readOnly
                   value={district}
-                  placeholder="Auto-locked by GPS..."
-                  className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 cursor-not-allowed"
+                  placeholder="Auto-detected District..."
+                  className="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 cursor-not-allowed"
                 />
               </div>
             </div>
 
-            {/* Read-Only Address */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex justify-between">
-                <span>Street Address & Landmark</span>
-                <span className="text-[10px] text-emerald-700 font-bold">Verified Sensor GPS</span>
-              </label>
-              <input
-                type="text"
-                readOnly
-                value={address}
-                placeholder="Resolving street location from live GPS..."
-                className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 cursor-not-allowed"
-              />
-            </div>
-
-            {/* Live Map with Accuracy Radius */}
+            {/* Live Map */}
             {liveLat && liveLng && <MapView lat={liveLat} lng={liveLng} accuracy={accuracy} />}
           </div>
 
@@ -448,7 +522,7 @@ export const ReportIssue: React.FC = () => {
               </span>
             </button>
 
-            {/* Photo Gallery with Individual Geotags */}
+            {/* Photo Gallery */}
             {photos.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
                 {photos.map((p, idx) => (
