@@ -52,11 +52,14 @@ export const ReportIssue: React.FC = () => {
   const [devOtp, setDevOtp] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
 
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     startGpsTracking();
 
     return () => {
       if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, []);
 
@@ -89,6 +92,18 @@ export const ReportIssue: React.FC = () => {
     );
 
     watchIdRef.current = watchId;
+
+    // Forced re-poll every 3 seconds for guaranteed live updates
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    pollIntervalRef.current = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          handleNewPosition(pos.coords.latitude, pos.coords.longitude, Math.round(pos.coords.accuracy || 5));
+        },
+        () => {}, // silently ignore poll errors
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }, 3000);
   };
 
   const handleNewPosition = async (lat: number, lng: number, acc: number) => {
@@ -329,7 +344,7 @@ export const ReportIssue: React.FC = () => {
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
                   <span>Current Latitude</span>
                   <span className="text-emerald-600 font-mono text-[9px] font-bold">
-                    {liveLat !== null ? (isLatPulsing ? 'CHANGING' : 'LOCKED') : 'SENSOR WAIT'}
+                    {liveLat !== null ? (isLatPulsing ? '↑ UPDATING' : 'LIVE STREAMING') : 'SENSOR WAIT'}
                   </span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1 flex items-center gap-2">
@@ -351,7 +366,7 @@ export const ReportIssue: React.FC = () => {
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
                   <span>Current Longitude</span>
                   <span className="text-emerald-600 font-mono text-[9px] font-bold">
-                    {liveLng !== null ? (isLngPulsing ? 'CHANGING' : 'LOCKED') : 'SENSOR WAIT'}
+                    {liveLng !== null ? (isLngPulsing ? '↑ UPDATING' : 'LIVE STREAMING') : 'SENSOR WAIT'}
                   </span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1 flex items-center gap-2">
