@@ -23,11 +23,6 @@
       }
     }
   </script>
-  <style>
-    .watermark-badge {
-      background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 100%);
-    }
-  </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans antialiased selection:bg-sky-500 selection:text-white">
 
@@ -58,10 +53,10 @@
       <!-- Header -->
       <div class="mb-8 border-b border-slate-100 pb-6">
         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold mb-2">
-          <i class="fa-solid fa-satellite-dish text-sky-600"></i> Strict GPS Geotagged Redressal
+          <i class="fa-solid fa-camera-viewfinder text-sky-600"></i> Live On-Site Camera Only &bull; Strict GPS Verification
         </div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Report a Civic Issue</h1>
-        <p class="text-xs sm:text-sm text-slate-500 mt-1">Live camera photo and verified GPS coordinates are strictly required for authentication.</p>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">To eliminate fake reports, only live camera photos with real-time GPS coordinates are accepted.</p>
       </div>
 
       <!-- Form -->
@@ -104,7 +99,7 @@
                 <i class="fa-solid fa-location-crosshairs text-sky-600"></i>
                 1. GPS Coordinates (Strictly Required)
               </h3>
-              <p class="text-[11px] text-slate-500">Every photo is stamped with these exact coordinates for Sub-Admin inspection</p>
+              <p class="text-[11px] text-slate-500">Coordinates are stamped permanently on every live photo for official Sub-Admin verification</p>
             </div>
             <button type="button" id="detectGpsBtn" onclick="autoDetectLocation()" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition flex items-center justify-center gap-1.5">
               <i class="fa-solid fa-crosshairs"></i>
@@ -124,7 +119,7 @@
           </div>
 
           <div id="gpsStatusMsg" class="text-xs p-2.5 rounded-xl bg-sky-50 text-sky-800 border border-sky-200">
-            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Acquiring GPS coordinates...
+            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Locking GPS coordinates...
           </div>
 
           <!-- Pincode & District Fields -->
@@ -169,34 +164,28 @@
           </div>
         </div>
 
-        <!-- MULTIPLE GEOTAGGED LIVE PHOTOS SECTION -->
+        <!-- LIVE CAMERA ONLY (NO DEVICE UPLOADS) -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
             <div>
               <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider">
-                2. Live Camera Capture & Photos <span class="text-red-500">*</span>
+                2. Live Camera Capture Only <span class="text-red-500">*</span>
               </label>
-              <p class="text-[11px] text-slate-500">Capture multiple photos (up to 5). Each image is automatically watermarked with verified GPS coordinates.</p>
+              <p class="text-[11px] text-slate-500">Gallery uploads are disabled to prevent stale/fake media. Take real-time live photos (up to 5).</p>
             </div>
-            <span id="photoCountBadge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">
-              0 / 5 Photos
+            <span id="photoCountBadge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200">
+              0 / 5 Photos Taken
             </span>
           </div>
 
-          <!-- Capture Options Row -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <!-- Button 1: Live Camera Stream -->
-            <button type="button" onclick="openLiveCameraModal()" class="p-4 rounded-2xl border-2 border-dashed border-sky-300 hover:border-sky-500 bg-sky-50/50 hover:bg-sky-50 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-2">
-              <i class="fa-solid fa-camera text-base text-sky-600"></i>
-              <span>Open Live Camera (Instant Geotag)</span>
+          <!-- Single Prominent Live Camera Action Button -->
+          <div>
+            <button type="button" onclick="openLiveCameraModal()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-bold text-sm shadow-md shadow-sky-500/20 hover:shadow-lg transition flex items-center justify-center gap-3 group">
+              <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-base group-hover:scale-110 transition">
+                <i class="fa-solid fa-camera"></i>
+              </div>
+              <span>Open Live Camera (Capture Geotagged Photo)</span>
             </button>
-
-            <!-- Button 2: File / Native Camera Upload -->
-            <label class="p-4 rounded-2xl border-2 border-dashed border-slate-200 hover:border-sky-500 bg-slate-50/50 hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer">
-              <i class="fa-solid fa-images text-base text-slate-500"></i>
-              <span>Upload / Camera Gallery</span>
-              <input type="file" id="multiImageInput" accept="image/*" capture="environment" multiple class="hidden" onchange="handleImageSelection(event)">
-            </label>
           </div>
 
           <!-- Geotagged Photos Gallery Preview -->
@@ -204,10 +193,11 @@
             <!-- Geotagged photos injected here -->
           </div>
 
-          <p id="noPhotosPrompt" class="text-center py-6 border border-dashed border-slate-200 rounded-2xl text-xs text-slate-400">
-            <i class="fa-solid fa-camera text-slate-300 text-2xl mb-1 block"></i>
-            No photos captured yet. Take a live camera photo or upload with GPS lock.
-          </p>
+          <div id="noPhotosPrompt" class="text-center py-6 border-2 border-dashed border-slate-200 rounded-2xl text-xs text-slate-400 space-y-1">
+            <i class="fa-solid fa-camera-viewfinder text-slate-300 text-3xl mb-1 block"></i>
+            <div class="font-bold text-slate-600">No live photos captured yet</div>
+            <p class="text-[11px]">Click "Open Live Camera" above to take verified on-site photos</p>
+          </div>
         </div>
 
         <!-- Issue Title & Description -->
@@ -259,7 +249,7 @@
         <!-- Submit Button -->
         <button type="submit" id="submitComplaintBtn" class="w-full py-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shadow-md shadow-sky-500/20 hover:shadow-lg transition flex items-center justify-center gap-2">
           <i class="fa-solid fa-paper-plane"></i>
-          <span id="submitBtnText">Submit Geotagged Grievance to Dedicated Sub-Admin</span>
+          <span id="submitBtnText">Submit Live Geotagged Grievance</span>
         </button>
       </form>
 
@@ -267,7 +257,7 @@
   </main>
 
   <!-- LIVE CAMERA STREAM MODAL -->
-  <div id="cameraModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+  <div id="cameraModal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
       <div class="flex justify-between items-center">
         <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -280,7 +270,7 @@
         <video id="cameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
         
         <!-- Live GPS Overlay Tag on Camera Viewfinder -->
-        <div class="absolute bottom-3 left-3 right-3 bg-black/75 backdrop-blur-md text-white p-2.5 rounded-xl text-[10px] font-mono leading-tight space-y-0.5">
+        <div class="absolute bottom-3 left-3 right-3 bg-black/80 backdrop-blur-md text-white p-2.5 rounded-xl text-[10px] font-mono leading-tight space-y-0.5">
           <div class="text-sky-300 font-bold flex items-center gap-1">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             LIVE GPS EMBEDDER
@@ -495,7 +485,7 @@
       }
     }
 
-    // --- LIVE CAMERA STREAM HANDLING ---
+    // --- LIVE CAMERA STREAM HANDLING (ONLY) ---
     async function openLiveCameraModal() {
       if (!gpsLocked) {
         API.showToast("Please lock GPS location before capturing photos.", "warning");
@@ -520,7 +510,7 @@
         video.srcObject = cameraStream;
       } catch (err) {
         console.error("Camera Access Error:", err);
-        API.showToast("Could not access live camera. Please use file upload with camera capture.", "error");
+        API.showToast("Camera permission denied. Please allow camera permissions.", "error");
         closeLiveCameraModal();
       }
     }
@@ -536,7 +526,7 @@
     // Capture from Live Video Stream and Watermark with GPS
     async function captureLivePhoto() {
       if (capturedPhotos.length >= 5) {
-        API.showToast("Maximum 5 photos allowed.", "warning");
+        API.showToast("Maximum 5 photos allowed per grievance.", "warning");
         closeLiveCameraModal();
         return;
       }
@@ -561,7 +551,7 @@
       stampGpsWatermark(ctx, canvas.width, canvas.height, lat, lng, pincode, address, dateStr);
 
       canvas.toBlob((blob) => {
-        const file = new File([blob], `civic_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const file = new File([blob], `civic_live_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
         const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
 
         capturedPhotos.push({
@@ -575,70 +565,8 @@
 
         renderPhotosGallery();
         closeLiveCameraModal();
-        API.showToast("Geotagged photo captured successfully!", "success");
+        API.showToast("Live geotagged photo captured!", "success");
       }, 'image/jpeg', 0.92);
-    }
-
-    // --- UPLOAD / NATIVE FILE WATERMARK EMBEDDING ---
-    async function handleImageSelection(e) {
-      const files = Array.from(e.target.files);
-      if (!files.length) return;
-
-      if (!gpsLocked) {
-        API.showToast("Locking GPS location before processing images...", "info");
-        await autoDetectLocation();
-      }
-
-      const lat = parseFloat(document.getElementById('latitude').value || '28.6139');
-      const lng = parseFloat(document.getElementById('longitude').value || '77.2090');
-      const pincode = document.getElementById('pincode').value || '';
-      const address = document.getElementById('address').value || '';
-
-      for (const file of files) {
-        if (capturedPhotos.length >= 5) {
-          API.showToast("Maximum 5 photos allowed per grievance.", "warning");
-          break;
-        }
-
-        const watermarked = await processAndWatermarkFile(file, lat, lng, pincode, address);
-        capturedPhotos.push(watermarked);
-      }
-
-      renderPhotosGallery();
-      e.target.value = '';
-    }
-
-    function processAndWatermarkFile(file, lat, lng, pincode, address) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.getElementById('watermarkCanvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-
-            ctx.drawImage(img, 0, 0);
-            stampGpsWatermark(ctx, canvas.width, canvas.height, lat, lng, pincode, address, new Date().toLocaleString('en-IN'));
-
-            canvas.toBlob((blob) => {
-              const newFile = new File([blob], file.name, { type: 'image/jpeg' });
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-              resolve({
-                file: newFile,
-                dataUrl,
-                lat,
-                lng,
-                pincode,
-                timestamp: new Date(),
-              });
-            }, 'image/jpeg', 0.92);
-          };
-          img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
     }
 
     // Canvas GPS Watermark Helper
@@ -654,7 +582,7 @@
 
       ctx.font = `${fontSize * 0.85}px sans-serif`;
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(`Captured on: ${dateStr} | Landmark: ${(addr || '').substring(0, 55)}`, 20, height - barHeight + (fontSize * 2.2) + 10);
+      ctx.fillText(`Live On-Site Capture: ${dateStr} | ${(addr || '').substring(0, 55)}`, 20, height - barHeight + (fontSize * 2.2) + 10);
     }
 
     function removePhoto(index) {
@@ -667,7 +595,7 @@
       const prompt = document.getElementById('noPhotosPrompt');
       const countBadge = document.getElementById('photoCountBadge');
 
-      countBadge.innerText = `${capturedPhotos.length} / 5 Photos`;
+      countBadge.innerText = `${capturedPhotos.length} / 5 Photos Taken`;
 
       if (capturedPhotos.length === 0) {
         gallery.innerHTML = '';
@@ -705,7 +633,7 @@
       }
 
       if (capturedPhotos.length === 0) {
-        API.showToast("Please capture or upload at least one geotagged photo.", "warning");
+        API.showToast("Please capture at least one live camera photo of the issue.", "warning");
         return;
       }
 
@@ -734,14 +662,14 @@
 
       try {
         await API.request('/complaints', 'POST', formData, true);
-        API.showToast("Geotagged grievance lodged successfully!", "success");
+        API.showToast("Live geotagged grievance lodged successfully!", "success");
         setTimeout(() => {
           window.location.href = 'user-dashboard.html';
         }, 1000);
       } catch (err) {
         API.showToast(err.message || "Failed to submit grievance", "error");
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Geotagged Grievance to Dedicated Sub-Admin';
+        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Live Geotagged Grievance';
       }
     }
 
@@ -771,7 +699,7 @@
         API.showToast(err.message || "Failed to dispatch email OTP", "error");
       } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Geotagged Grievance to Dedicated Sub-Admin';
+        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Live Geotagged Grievance';
       }
     }
 
@@ -818,7 +746,7 @@
         const res = await API.request('/complaints/submit-with-otp', 'POST', formData, true);
         
         API.setAuth(res.token, res.user, 'citizen');
-        API.showToast("Email verified & geotagged grievance lodged!", "success");
+        API.showToast("Email verified & live geotagged grievance lodged!", "success");
         
         closeOtpModal();
         setTimeout(() => {
@@ -843,7 +771,7 @@
       formData.append('latitude', document.getElementById('latitude').value);
       formData.append('longitude', document.getElementById('longitude').value);
 
-      // Append all geotagged photos
+      // Append all live captured geotagged photos
       capturedPhotos.forEach((photoObj) => {
         formData.append('images', photoObj.file);
       });
