@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Satellite, ShieldCheck, Trash2, Send, CheckCircle2, Activity, Footprints } from 'lucide-react';
+import { Camera, MapPin, Satellite, ShieldCheck, Trash2, Send, CheckCircle2, Activity, RefreshCw } from 'lucide-react';
 import { API } from '../services/api';
 import { GeoService, FusedPosition } from '../services/geo';
 import { CameraModal } from '../components/CameraModal';
@@ -39,11 +39,9 @@ export const ReportIssue: React.FC = () => {
   const [gpsLoading, setGpsLoading] = useState(true);
   const [isLatPulsing, setIsLatPulsing] = useState(false);
   const [isLngPulsing, setIsLngPulsing] = useState(false);
-  const [isSimulatingWalk, setIsSimulatingWalk] = useState(false);
 
   const prevLatRef = useRef<number | null>(null);
   const prevLngRef = useRef<number | null>(null);
-  const simIntervalRef = useRef<any>(null);
   const watchIdRef = useRef<number | null>(null);
 
   // Photos & Modals
@@ -58,7 +56,6 @@ export const ReportIssue: React.FC = () => {
 
     return () => {
       if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-      if (simIntervalRef.current) clearInterval(simIntervalRef.current);
     };
   }, []);
 
@@ -123,30 +120,6 @@ export const ReportIssue: React.FC = () => {
     if (geo.district) setDistrict(geo.district);
     if (geo.address) setAddress(geo.address);
     if (geo.landmark) setLandmark(geo.landmark);
-  };
-
-  const toggleWalkSimulator = () => {
-    if (isSimulatingWalk) {
-      clearInterval(simIntervalRef.current);
-      setIsSimulatingWalk(false);
-      startGpsTracking();
-    } else {
-      setIsSimulatingWalk(true);
-      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-
-      let currentSimLat = liveLat || 28.613945;
-      let currentSimLng = liveLng || 77.209023;
-
-      simIntervalRef.current = setInterval(() => {
-        const deltaLat = (Math.random() - 0.48) * 0.000035;
-        const deltaLng = (Math.random() - 0.48) * 0.000035;
-
-        currentSimLat += deltaLat;
-        currentSimLng += deltaLng;
-
-        handleNewPosition(currentSimLat, currentSimLng, 3);
-      }, 700);
-    }
   };
 
   const handlePhotoCaptured = (file: File, dataUrl: string, lat: number, lng: number) => {
@@ -304,76 +277,67 @@ export const ReportIssue: React.FC = () => {
             </div>
           </div>
 
-          {/* LIVE GPS TELEMETRY HUD */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-5">
+          {/* LIGHT-THEMED LIVE GPS TELEMETRY HUD */}
+          <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-emerald-400">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900">
                     Live GPS Telemetry HUD
                   </h3>
                 </div>
-                <p className="text-[11px] text-slate-400">Continuous hardware stream &bull; Ping #{updateCount}</p>
+                <p className="text-[11px] text-slate-500">Continuous hardware stream &bull; Ping #{updateCount}</p>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={toggleWalkSimulator}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
-                    isSimulatingWalk
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                  }`}
-                >
-                  <Footprints className="w-3.5 h-3.5" />
-                  <span>{isSimulatingWalk ? 'Simulating Walking (Live)' : 'Test Walk Motion'}</span>
-                </button>
-                <button
-                  type="button"
                   onClick={startGpsTracking}
-                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl shadow transition"
+                  className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5"
                 >
-                  Sync
+                  <RefreshCw className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Sync GPS</span>
                 </button>
               </div>
             </div>
 
-            {/* BIG REAL-TIME DIGITS (LATITUDE & LONGITUDE) */}
+            {/* BIG REAL-TIME DIGITS (LIGHT THEME) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Latitude Card */}
               <div className={`p-4 rounded-2xl border transition-all duration-300 ${
-                isLatPulsing ? 'bg-emerald-950/80 border-emerald-400 shadow-lg shadow-emerald-500/20 scale-[1.02]' : 'bg-slate-800/80 border-slate-700'
+                isLatPulsing ? 'bg-emerald-50 border-emerald-400 shadow-md scale-[1.01]' : 'bg-white border-slate-200 shadow-xs'
               }`}>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
                   <span>Current Latitude</span>
-                  <span className="text-emerald-400 font-mono text-[9px]">{isLatPulsing ? 'CHANGING' : 'STREAMING'}</span>
+                  <span className="text-emerald-600 font-mono text-[9px] font-bold">{isLatPulsing ? 'CHANGING' : 'STREAMING'}</span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white mt-1">
+                <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1">
                   {liveLat !== null ? liveLat.toFixed(6) : '00.000000'}
                 </div>
               </div>
 
+              {/* Longitude Card */}
               <div className={`p-4 rounded-2xl border transition-all duration-300 ${
-                isLngPulsing ? 'bg-emerald-950/80 border-emerald-400 shadow-lg shadow-emerald-500/20 scale-[1.02]' : 'bg-slate-800/80 border-slate-700'
+                isLngPulsing ? 'bg-emerald-50 border-emerald-400 shadow-md scale-[1.01]' : 'bg-white border-slate-200 shadow-xs'
               }`}>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
                   <span>Current Longitude</span>
-                  <span className="text-emerald-400 font-mono text-[9px]">{isLngPulsing ? 'CHANGING' : 'STREAMING'}</span>
+                  <span className="text-emerald-600 font-mono text-[9px] font-bold">{isLngPulsing ? 'CHANGING' : 'STREAMING'}</span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white mt-1">
+                <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1">
                   {liveLng !== null ? liveLng.toFixed(6) : '00.000000'}
                 </div>
               </div>
             </div>
 
             {/* Accuracy Badge */}
-            <div className="bg-slate-800/60 p-3 rounded-2xl border border-slate-700/60 flex items-center justify-between">
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-sky-400" />
-                <span className="text-xs font-bold text-slate-300">Live GPS Precision:</span>
+                <Activity className="w-4 h-4 text-sky-600" />
+                <span className="text-xs font-bold text-slate-700">Live GPS Precision:</span>
               </div>
-              <div className="text-xs font-mono font-bold text-emerald-400">
+              <div className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
                 &plusmn;{accuracy} meters
               </div>
             </div>
@@ -381,32 +345,47 @@ export const ReportIssue: React.FC = () => {
             {/* Read-Only Location Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 flex justify-between">
+                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1 flex justify-between">
                   <span>Postal PIN Code</span>
-                  <span className="text-emerald-400">Sensor Mapped</span>
+                  <span className="text-emerald-600 font-bold">Sensor Mapped</span>
                 </label>
                 <input
                   type="text"
                   readOnly
                   value={pincode}
                   placeholder="Auto-detected PIN..."
-                  className="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono font-bold text-emerald-300 cursor-not-allowed"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-emerald-800 cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 flex justify-between">
+                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1 flex justify-between">
                   <span>District / City</span>
-                  <span className="text-emerald-400">Sensor Mapped</span>
+                  <span className="text-emerald-600 font-bold">Sensor Mapped</span>
                 </label>
                 <input
                   type="text"
                   readOnly
                   value={district}
                   placeholder="Auto-detected District..."
-                  className="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 cursor-not-allowed"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 cursor-not-allowed"
                 />
               </div>
+            </div>
+
+            {/* Read-Only Street Address */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1 flex justify-between">
+                <span>Street Address & Landmark</span>
+                <span className="text-emerald-600 font-bold">Verified Sensor GPS</span>
+              </label>
+              <input
+                type="text"
+                readOnly
+                value={address}
+                placeholder="Resolving street location from live GPS..."
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 cursor-not-allowed"
+              />
             </div>
 
             {/* Live Map with Accuracy Radius */}
