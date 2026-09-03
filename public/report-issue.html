@@ -56,7 +56,7 @@
           <i class="fa-solid fa-satellite-dish text-sky-600"></i> Strict Hardware GPS Verification
         </div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Report a Civic Issue</h1>
-        <p class="text-xs sm:text-sm text-slate-500 mt-1">Live camera capture requires verified GPS location permissions. If GPS is denied, photo capture is blocked.</p>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">Live camera capture requires verified GPS location. If GPS is denied, photo capture is blocked.</p>
       </div>
 
       <!-- Form -->
@@ -107,17 +107,6 @@
             </button>
           </div>
 
-          <!-- Quick Landmark / Colony Search Box -->
-          <div>
-            <div class="relative">
-              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-              <input type="text" id="placeSearchInput" placeholder="Search colony or landmark on map..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchLandmark();}" class="w-full pl-9 pr-24 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
-              <button type="button" onclick="searchLandmark()" class="absolute right-1.5 top-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold rounded-lg transition">
-                Search
-              </button>
-            </div>
-          </div>
-
           <!-- Dynamic GPS Status Bar -->
           <div id="gpsStatusMsg" class="text-xs p-3 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-between font-mono">
             <span id="liveCoordsDisplay"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Requesting GPS permission...</span>
@@ -131,10 +120,7 @@
                 District Pincode <span class="text-red-500">*</span>
               </label>
               <div class="relative">
-                <input type="text" id="pincode" maxlength="6" required placeholder="e.g. 110001" oninput="handlePincodeInput(this.value)" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-sky-900 focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
-                <span id="pincodeSpinner" class="hidden absolute right-3 top-2.5 text-xs text-sky-600">
-                  <i class="fa-solid fa-spinner fa-spin"></i>
-                </span>
+                <input type="text" id="pincode" maxlength="6" required placeholder="Auto-detected from GPS..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-sky-900 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
               </div>
             </div>
 
@@ -142,7 +128,7 @@
               <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 District / City
               </label>
-              <input type="text" id="district" placeholder="District name..." class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+              <input type="text" id="district" placeholder="Auto-detected district..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
             </div>
           </div>
 
@@ -151,7 +137,7 @@
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Full Street Address & Landmark
             </label>
-            <input type="text" id="address" required placeholder="Resolving address from live location..." class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+            <input type="text" id="address" required placeholder="Resolving street address from live GPS..." class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
           </div>
 
           <!-- Hidden Coordinates -->
@@ -340,7 +326,6 @@
   <script>
     let map, marker;
     let capturedPhotos = [];
-    let debounceTimer;
     let isUserLoggedIn = false;
     let cameraStream = null;
     let currentLiveLat = null;
@@ -374,19 +359,7 @@
           attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-
-        map.on('click', async function(e) {
-          marker.setLatLng(e.latlng);
-          onLiveCoordinatesUpdated(e.latlng.lat, e.latlng.lng, 5);
-          await fetchAddressForCoords(e.latlng.lat, e.latlng.lng);
-        });
-
-        marker.on('dragend', async function() {
-          const pos = marker.getLatLng();
-          onLiveCoordinatesUpdated(pos.lat, pos.lng, 5);
-          await fetchAddressForCoords(pos.lat, pos.lng);
-        });
+        marker = L.marker([lat, lng], { draggable: false }).addTo(map);
       } else {
         map.setView([lat, lng], 15);
         marker.setLatLng([lat, lng]);
@@ -400,7 +373,6 @@
         return;
       }
 
-      const statusMsg = document.getElementById('gpsStatusMsg');
       const liveCoordsDisplay = document.getElementById('liveCoordsDisplay');
       liveCoordsDisplay.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Requesting GPS hardware coordinates...';
 
@@ -444,6 +416,7 @@
 
       if (map && marker) {
         marker.setLatLng([lat, lng]);
+        map.panTo([lat, lng]);
       }
 
       const camGps = document.getElementById('camGpsOverlay');
@@ -495,7 +468,7 @@
         <span class="flex items-center gap-1.5 font-bold">
           <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> GPS Signal Searching...
         </span>
-        <span class="text-[11px] text-amber-700">Please turn on device location or select map pin</span>
+        <span class="text-[11px] text-amber-700">Please turn on device location</span>
       `;
 
       lockCameraUI(false);
@@ -549,45 +522,6 @@
         if (res.address) document.getElementById('address').value = res.address;
       } catch(err) {
         console.warn(err);
-      }
-    }
-
-    async function searchLandmark() {
-      const query = document.getElementById('placeSearchInput').value.trim();
-      if (!query) return;
-
-      API.showToast(`Searching "${query}"...`, "info");
-      const result = await Geo.searchLocation(query);
-      if (result) {
-        onLiveCoordinatesUpdated(result.lat, result.lng, 10);
-        initMap(result.lat, result.lng);
-        if (result.pincode) document.getElementById('pincode').value = result.pincode;
-        if (result.district) document.getElementById('district').value = result.district;
-        if (result.address) document.getElementById('address').value = result.address;
-        API.showToast("GPS position set & camera unlocked!", "success");
-      } else {
-        API.showToast("Could not find that landmark. Try typing the 6-digit Pincode directly.", "warning");
-      }
-    }
-
-    function handlePincodeInput(pincode) {
-      const clean = pincode.replace(/\D/g, '');
-      if (clean.length === 6) {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(async () => {
-          const spinner = document.getElementById('pincodeSpinner');
-          spinner.classList.remove('hidden');
-          const result = await Geo.searchLocation(clean);
-          spinner.classList.add('hidden');
-          
-          if (result) {
-            onLiveCoordinatesUpdated(result.lat, result.lng, 10);
-            initMap(result.lat, result.lng);
-            if (result.district) document.getElementById('district').value = result.district;
-            if (result.address) document.getElementById('address').value = result.address;
-            API.showToast(`GPS position set to PIN ${clean} & camera unlocked!`, "success");
-          }
-        }, 500);
       }
     }
 
