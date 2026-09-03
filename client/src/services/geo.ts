@@ -17,80 +17,27 @@ export interface FusedPosition {
 }
 
 export const GeoService = {
-  // Ultra-Fast Zero-Wait Network Resolver (Fetches in <200ms)
-  fetchFastNetworkLocation: async (): Promise<FusedPosition | null> => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-      // Try freeipapi.com (Fast CORS HTTPS)
-      const res = await fetch('https://freeipapi.com/api/json', { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.latitude && data.longitude) {
-          return {
-            lat: parseFloat(data.latitude),
-            lng: parseFloat(data.longitude),
-            accuracy: 100,
-            speed: null,
-            heading: null,
-            altitude: null,
-            timestamp: Date.now(),
-          };
-        }
-      }
-    } catch (e) {
-      // Try secondary fallback (ipapi.co)
-      try {
-        const res2 = await fetch('https://ipapi.co/json/');
-        if (res2.ok) {
-          const data2 = await res2.json();
-          if (data2 && data2.latitude && data2.longitude) {
-            return {
-              lat: parseFloat(data2.latitude),
-              lng: parseFloat(data2.longitude),
-              accuracy: 100,
-              speed: null,
-              heading: null,
-              altitude: null,
-              timestamp: Date.now(),
-            };
-          }
-        }
-      } catch {
-        // Ignore
-      }
-    }
-    return null;
-  },
-
-  // Instant Multi-Tier Live GPS Tracker
+  // STRICT 100% PHYSICAL HARDWARE GPS SENSOR (NO IP FALLBACK)
   startLiveTracking: (
     onUpdate: (pos: FusedPosition) => void,
     onError: (err: GeolocationPositionError) => void
   ): { watchId: number | null } => {
-    let hasHighAccuracyFix = false;
-
-    // 1. Fire Fast Network Location Immediately (Zero waiting)
-    GeoService.fetchFastNetworkLocation().then((netPos) => {
-      if (netPos && !hasHighAccuracyFix) {
-        console.log('[GPS Fast-Lock]: Initial position acquired via network');
-        onUpdate(netPos);
-      }
-    });
-
     if (!navigator.geolocation) {
+      onError({
+        code: 2,
+        message: 'Geolocation hardware is not supported on this browser/device.',
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+      } as GeolocationPositionError);
       return { watchId: null };
     }
 
     const processSensorPosition = (pos: GeolocationPosition) => {
-      hasHighAccuracyFix = true;
       onUpdate({
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
-        accuracy: Math.round(pos.coords.accuracy || 10),
+        accuracy: Math.round(pos.coords.accuracy || 5),
         speed: pos.coords.speed,
         heading: pos.coords.heading,
         altitude: pos.coords.altitude,
@@ -98,24 +45,32 @@ export const GeoService = {
       });
     };
 
-    // 2. Immediate Hardware Position Request
+    // 1. Initial Prompt & High-Accuracy Hardware Query
     navigator.geolocation.getCurrentPosition(
       processSensorPosition,
       (err) => {
-        console.warn('[GPS Hardware Request]:', err.message);
+        console.warn('[Strict GPS Hardware Error]:', err.code, err.message);
         onError(err);
       },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0, // Strictly fresh hardware sensor data
+      }
     );
 
-    // 3. Continuous Real-time Hardware Stream
+    // 2. Continuous Hardware GPS Stream
     const watchId = navigator.geolocation.watchPosition(
       processSensorPosition,
       (err) => {
-        console.warn('[GPS Watch Stream]:', err.message);
+        console.warn('[Strict GPS Hardware Watch Error]:', err.code, err.message);
         onError(err);
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0,
+      }
     );
 
     return { watchId };

@@ -26,7 +26,7 @@ export const ReportIssue: React.FC = () => {
   const [category, setCategory] = useState('Roads & Potholes');
   const [priority, setPriority] = useState('Medium');
 
-  // Real-Time Live Sensor Telemetry
+  // Real-Time Live Sensor Telemetry (Strict Hardware Sensor)
   const [liveLat, setLiveLat] = useState<number | null>(null);
   const [liveLng, setLiveLng] = useState<number | null>(null);
   const [accuracy, setAccuracy] = useState<number>(0);
@@ -37,6 +37,7 @@ export const ReportIssue: React.FC = () => {
   const [landmark, setLandmark] = useState('');
   const [gpsDenied, setGpsDenied] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [isLatPulsing, setIsLatPulsing] = useState(false);
   const [isLngPulsing, setIsLngPulsing] = useState(false);
 
@@ -62,6 +63,7 @@ export const ReportIssue: React.FC = () => {
   const startGpsTracking = () => {
     setGpsLoading(true);
     setGpsDenied(false);
+    setErrorMessage('');
 
     if (watchIdRef.current) {
       navigator.geolocation.clearWatch(watchIdRef.current);
@@ -73,9 +75,15 @@ export const ReportIssue: React.FC = () => {
         handleNewPosition(pos.lat, pos.lng, pos.accuracy);
       },
       (err: GeolocationPositionError) => {
-        console.warn('GPS error callback:', err);
+        console.warn('GPS hardware error:', err);
+        setGpsLoading(false);
         if (err.code === 1) {
           setGpsDenied(true);
+          setErrorMessage('Location permission denied. Please allow location access in your browser / Mac settings.');
+        } else if (err.code === 2) {
+          setErrorMessage('GPS position unavailable. Please ensure Wi-Fi or Location Services are enabled on your device.');
+        } else if (err.code === 3) {
+          setErrorMessage('GPS query timed out. Please click "Sync / Refresh GPS" to retry.');
         }
       }
     );
@@ -101,6 +109,7 @@ export const ReportIssue: React.FC = () => {
     setAccuracy(acc);
     setGpsLoading(false);
     setGpsDenied(false);
+    setErrorMessage('');
     setUpdateCount((prev) => prev + 1);
 
     const geo = await GeoService.reverseGeocode(lat, lng);
@@ -122,7 +131,7 @@ export const ReportIssue: React.FC = () => {
     e.preventDefault();
 
     if (liveLat === null || liveLng === null) {
-      alert('Strict GPS Location is mandatory! Please click "Allow Location" or "Sync GPS" to continue.');
+      alert('Strict Hardware GPS Location is mandatory! Please enable location access.');
       startGpsTracking();
       return;
     }
@@ -212,11 +221,11 @@ export const ReportIssue: React.FC = () => {
         <div className="border-b border-slate-100 pb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold mb-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-            <span>Real-Time Sensor Tracking &bull; Continuous Dynamic GPS</span>
+            <span>Strict Hardware Sensor GPS &bull; Live Dynamic Stream</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Report a Civic Issue</h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Coordinates continuously update as you move across the site.
+            Coordinates are pulled strictly from your physical device GPS hardware.
           </p>
         </div>
 
@@ -272,11 +281,13 @@ export const ReportIssue: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
                   <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900">
-                    Live GPS Telemetry HUD
+                    Live Hardware GPS Sensor
                   </h3>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  {gpsLoading && liveLat === null ? 'Acquiring hardware sensor...' : `Continuous hardware stream • Ping #${updateCount}`}
+                  {gpsLoading && liveLat === null
+                    ? 'Connecting to hardware sensor...'
+                    : `Live sensor connected • Ping #${updateCount}`}
                 </p>
               </div>
 
@@ -292,19 +303,19 @@ export const ReportIssue: React.FC = () => {
               </div>
             </div>
 
-            {/* GPS Status Alert (If Denied) */}
-            {gpsDenied && (
-              <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                <div className="flex items-center gap-2.5 text-xs text-rose-800 font-medium">
-                  <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
-                  <span>Location access is currently blocked. Please click allow or enable location in your browser.</span>
+            {/* GPS Error Alert */}
+            {errorMessage && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <div className="flex items-center gap-2.5 text-xs text-amber-800 font-medium">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                  <span>{errorMessage}</span>
                 </div>
                 <button
                   type="button"
                   onClick={startGpsTracking}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow transition whitespace-nowrap"
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow transition whitespace-nowrap"
                 >
-                  Allow Location Access
+                  Retry Sensor Connection
                 </button>
               </div>
             )}
@@ -318,7 +329,7 @@ export const ReportIssue: React.FC = () => {
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
                   <span>Current Latitude</span>
                   <span className="text-emerald-600 font-mono text-[9px] font-bold">
-                    {liveLat !== null ? (isLatPulsing ? 'CHANGING' : 'LOCKED') : 'LOCATING'}
+                    {liveLat !== null ? (isLatPulsing ? 'CHANGING' : 'LOCKED') : 'SENSOR WAIT'}
                   </span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1 flex items-center gap-2">
@@ -327,7 +338,7 @@ export const ReportIssue: React.FC = () => {
                   ) : (
                     <span className="text-sm font-sans text-slate-400 font-medium flex items-center gap-1.5">
                       <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
-                      <span>Locking Coordinates...</span>
+                      <span>Reading Physical Sensor...</span>
                     </span>
                   )}
                 </div>
@@ -340,7 +351,7 @@ export const ReportIssue: React.FC = () => {
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
                   <span>Current Longitude</span>
                   <span className="text-emerald-600 font-mono text-[9px] font-bold">
-                    {liveLng !== null ? (isLngPulsing ? 'CHANGING' : 'LOCKED') : 'LOCATING'}
+                    {liveLng !== null ? (isLngPulsing ? 'CHANGING' : 'LOCKED') : 'SENSOR WAIT'}
                   </span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1 flex items-center gap-2">
@@ -349,7 +360,7 @@ export const ReportIssue: React.FC = () => {
                   ) : (
                     <span className="text-sm font-sans text-slate-400 font-medium flex items-center gap-1.5">
                       <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
-                      <span>Locking Coordinates...</span>
+                      <span>Reading Physical Sensor...</span>
                     </span>
                   )}
                 </div>
@@ -360,10 +371,10 @@ export const ReportIssue: React.FC = () => {
             <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-sky-600" />
-                <span className="text-xs font-bold text-slate-700">Live GPS Precision:</span>
+                <span className="text-xs font-bold text-slate-700">Physical GPS Precision:</span>
               </div>
               <div className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                {liveLat !== null ? `±${accuracy} meters` : 'Calibrating...'}
+                {liveLat !== null ? `±${accuracy} meters (Hardware GPS)` : 'Waiting for hardware sensor...'}
               </div>
             </div>
 
@@ -419,7 +430,7 @@ export const ReportIssue: React.FC = () => {
             ) : (
               <div className="h-48 rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-400 text-xs space-y-2">
                 <MapPin className="w-6 h-6 text-slate-300 animate-bounce" />
-                <span>Map will render as soon as coordinates are locked</span>
+                <span>Map will render strictly when hardware sensor GPS connects</span>
               </div>
             )}
           </div>
