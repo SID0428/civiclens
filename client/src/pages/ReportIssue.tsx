@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Satellite, ShieldCheck, Trash2, Send, CheckCircle2, Activity, Navigation, Compass, Gauge, Footprints } from 'lucide-react';
+import { Camera, MapPin, Satellite, ShieldCheck, Trash2, Send, CheckCircle2, Activity, Footprints } from 'lucide-react';
 import { API } from '../services/api';
 import { GeoService, FusedPosition } from '../services/geo';
 import { CameraModal } from '../components/CameraModal';
@@ -12,21 +12,6 @@ interface PhotoItem {
   dataUrl: string;
   lat: number;
   lng: number;
-}
-
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371e3;
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return parseFloat((R * c).toFixed(1));
 }
 
 export const ReportIssue: React.FC = () => {
@@ -45,11 +30,7 @@ export const ReportIssue: React.FC = () => {
   const [liveLat, setLiveLat] = useState<number | null>(null);
   const [liveLng, setLiveLng] = useState<number | null>(null);
   const [accuracy, setAccuracy] = useState<number>(0);
-  const [speed, setSpeed] = useState<number>(0);
-  const [heading, setHeading] = useState<number | null>(null);
-  const [altitude, setAltitude] = useState<number | null>(null);
   const [updateCount, setUpdateCount] = useState<number>(0);
-  const [distanceMoved, setDistanceMoved] = useState<number>(0);
   const [pincode, setPincode] = useState('');
   const [district, setDistrict] = useState('');
   const [address, setAddress] = useState('');
@@ -60,7 +41,6 @@ export const ReportIssue: React.FC = () => {
   const [isLngPulsing, setIsLngPulsing] = useState(false);
   const [isSimulatingWalk, setIsSimulatingWalk] = useState(false);
 
-  const initialLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   const prevLatRef = useRef<number | null>(null);
   const prevLngRef = useRef<number | null>(null);
   const simIntervalRef = useRef<any>(null);
@@ -76,17 +56,9 @@ export const ReportIssue: React.FC = () => {
   useEffect(() => {
     startGpsTracking();
 
-    const handleOrientation = (e: DeviceOrientationEvent) => {
-      if (e.alpha !== null) {
-        setHeading(Math.round(e.alpha));
-      }
-    };
-    window.addEventListener('deviceorientation', handleOrientation, true);
-
     return () => {
       if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
       if (simIntervalRef.current) clearInterval(simIntervalRef.current);
-      window.removeEventListener('deviceorientation', handleOrientation);
     };
   }, []);
 
@@ -101,10 +73,7 @@ export const ReportIssue: React.FC = () => {
         handleNewPosition(
           pos.lat,
           pos.lng,
-          pos.accuracy,
-          pos.speed,
-          pos.heading,
-          pos.altitude
+          pos.accuracy
         );
       },
       (err: GeolocationPositionError) => {
@@ -127,10 +96,7 @@ export const ReportIssue: React.FC = () => {
   const handleNewPosition = async (
     lat: number,
     lng: number,
-    acc: number,
-    spd: number | null = null,
-    hdg: number | null = null,
-    alt: number | null = null
+    acc: number
   ) => {
     if (prevLatRef.current !== null && prevLatRef.current !== lat) {
       setIsLatPulsing(true);
@@ -144,24 +110,9 @@ export const ReportIssue: React.FC = () => {
     prevLatRef.current = lat;
     prevLngRef.current = lng;
 
-    if (!initialLocationRef.current) {
-      initialLocationRef.current = { lat, lng };
-    } else {
-      const dist = calculateDistance(
-        initialLocationRef.current.lat,
-        initialLocationRef.current.lng,
-        lat,
-        lng
-      );
-      setDistanceMoved(dist);
-    }
-
     setLiveLat(lat);
     setLiveLng(lng);
     setAccuracy(acc);
-    setSpeed(spd !== null ? Math.round(spd * 3.6) : 0);
-    if (hdg !== null) setHeading(Math.round(hdg));
-    if (alt !== null) setAltitude(Math.round(alt));
 
     setGpsLoading(false);
     setGpsDenied(false);
@@ -193,7 +144,7 @@ export const ReportIssue: React.FC = () => {
         currentSimLat += deltaLat;
         currentSimLng += deltaLng;
 
-        handleNewPosition(currentSimLat, currentSimLng, 3, 1.4, Math.floor(Math.random() * 360));
+        handleNewPosition(currentSimLat, currentSimLng, 3);
       }, 700);
     }
   };
@@ -300,11 +251,11 @@ export const ReportIssue: React.FC = () => {
         <div className="border-b border-slate-100 pb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold mb-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-            <span>Google-Grade Fused GPS &bull; Kalman Filter Smoothed</span>
+            <span>Real-Time Sensor Tracking &bull; Continuous Dynamic GPS</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Report a Civic Issue</h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Real-time multi-sensor telemetry with noise filtering and instant photo geotagging.
+            Coordinates continuously update as you move across the site.
           </p>
         </div>
 
@@ -353,7 +304,7 @@ export const ReportIssue: React.FC = () => {
             </div>
           </div>
 
-          {/* FUSED GPS TELEMETRY HUD */}
+          {/* LIVE GPS TELEMETRY HUD */}
           <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-5">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
               <div>
@@ -363,7 +314,7 @@ export const ReportIssue: React.FC = () => {
                     Live GPS Telemetry HUD
                   </h3>
                 </div>
-                <p className="text-[11px] text-slate-400">Kalman Fused Sensor Stream &bull; Ping #{updateCount}</p>
+                <p className="text-[11px] text-slate-400">Continuous hardware stream &bull; Ping #{updateCount}</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -416,38 +367,14 @@ export const ReportIssue: React.FC = () => {
               </div>
             </div>
 
-            {/* Secondary Telemetry (Accuracy, Speed, Distance, Heading) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-              <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/60">
-                <div className="text-[9px] text-slate-400 uppercase font-bold flex items-center justify-center gap-1">
-                  <Activity className="w-3 h-3 text-sky-400" />
-                  <span>Precision Radius</span>
-                </div>
-                <div className="text-sm font-black text-white mt-0.5 font-mono">&plusmn;{accuracy}m</div>
+            {/* Accuracy Badge */}
+            <div className="bg-slate-800/60 p-3 rounded-2xl border border-slate-700/60 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-sky-400" />
+                <span className="text-xs font-bold text-slate-300">Live GPS Precision:</span>
               </div>
-
-              <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/60">
-                <div className="text-[9px] text-slate-400 uppercase font-bold flex items-center justify-center gap-1">
-                  <Footprints className="w-3 h-3 text-emerald-400" />
-                  <span>Distance Moved</span>
-                </div>
-                <div className="text-sm font-black text-emerald-400 mt-0.5 font-mono">{distanceMoved} m</div>
-              </div>
-
-              <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/60">
-                <div className="text-[9px] text-slate-400 uppercase font-bold flex items-center justify-center gap-1">
-                  <Gauge className="w-3 h-3 text-amber-400" />
-                  <span>Speed</span>
-                </div>
-                <div className="text-sm font-black text-white mt-0.5 font-mono">{speed} km/h</div>
-              </div>
-
-              <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/60">
-                <div className="text-[9px] text-slate-400 uppercase font-bold flex items-center justify-center gap-1">
-                  <Compass className="w-3 h-3 text-purple-400" />
-                  <span>Compass Heading</span>
-                </div>
-                <div className="text-sm font-black text-white mt-0.5 font-mono">{heading !== null ? `${heading}°` : 'N/A'}</div>
+              <div className="text-xs font-mono font-bold text-emerald-400">
+                &plusmn;{accuracy} meters
               </div>
             </div>
 
