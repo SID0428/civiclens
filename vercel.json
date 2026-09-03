@@ -1,8 +1,8 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "routes": [
-    { "src": "/api/(.*)", "dest": "https://civiclens-ez72.onrender.com/api/$1" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+  "buildCommand": "cd client && npm install && npm run build",
+  "outputDirectory": "client/dist",
+  "rewrites": [
+    { "source": "/api/:match*", "destination": "https://civiclens-ez72.onrender.com/api/:match*" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
