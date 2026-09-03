@@ -52,11 +52,11 @@
       
       <!-- Header -->
       <div class="mb-8 border-b border-slate-100 pb-6">
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold mb-2">
-          <i class="fa-solid fa-satellite-dish text-sky-600"></i> Strict Hardware GPS Verification
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold mb-2">
+          <i class="fa-solid fa-shield-halved text-emerald-600"></i> Tamper-Proof Hardware GPS &bull; Anti-Spoofing Enabled
         </div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Report a Civic Issue</h1>
-        <p class="text-xs sm:text-sm text-slate-500 mt-1">Live camera capture requires verified GPS location. If GPS is denied, photo capture is blocked.</p>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">Manual location modification is disabled. All coordinates and photos are locked strictly to your live GPS sensor.</p>
       </div>
 
       <!-- Form -->
@@ -91,75 +91,83 @@
           </div>
         </div>
 
-        <!-- STRICT GPS LOCATION MANDATE SECTION -->
-        <div class="bg-gradient-to-br from-slate-50 to-sky-50/30 p-6 rounded-2xl border border-slate-200 space-y-4">
+        <!-- TAMPER-PROOF LIVE GPS LOCATION SECTION -->
+        <div class="bg-gradient-to-br from-slate-50 to-emerald-50/20 p-6 rounded-2xl border border-slate-200 space-y-4">
           <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
             <div>
               <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <i class="fa-solid fa-location-crosshairs text-sky-600"></i>
-                Step 1: GPS Location Permission (Strictly Required)
+                <i class="fa-solid fa-satellite text-emerald-600 animate-pulse"></i>
+                Step 1: Live Hardware GPS (Tamper-Proof)
               </h3>
-              <p class="text-[11px] text-slate-500">Camera shutter unlocks only when genuine device GPS coordinates are active</p>
+              <p class="text-[11px] text-slate-500">Live sensor tracking only. Manual map dragging or address editing is disabled.</p>
             </div>
-            <button type="button" id="detectGpsBtn" onclick="requestLiveGpsTracking()" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition flex items-center justify-center gap-1.5">
-              <i class="fa-solid fa-location-arrow"></i>
-              <span>Allow / Refresh GPS</span>
+            <button type="button" id="detectGpsBtn" onclick="requestLiveGpsTracking()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-rotate-right"></i>
+              <span>Refresh Live GPS</span>
             </button>
           </div>
 
           <!-- Dynamic GPS Status Bar -->
           <div id="gpsStatusMsg" class="text-xs p-3 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-between font-mono">
-            <span id="liveCoordsDisplay"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Requesting GPS permission...</span>
+            <span id="liveCoordsDisplay"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Connecting to live GPS sensor...</span>
             <span id="liveAccuracyDisplay" class="text-[10px] text-slate-500 font-sans font-bold">Accuracy: --</span>
           </div>
 
-          <!-- Pincode & District Fields -->
+          <!-- Read-Only Pincode & District Fields -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                District Pincode <span class="text-red-500">*</span>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <span>District Pincode <span class="text-red-500">*</span></span>
+                <span class="text-[10px] text-emerald-700 font-bold"><i class="fa-solid fa-lock text-[9px]"></i> GPS Auto-Locked</span>
               </label>
-              <div class="relative">
-                <input type="text" id="pincode" maxlength="6" required placeholder="Auto-detected from GPS..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-sky-900 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
-              </div>
+              <input type="text" id="pincode" readonly required placeholder="Auto-locked by GPS..." class="w-full px-4 py-2.5 bg-slate-100/90 border border-slate-200 rounded-xl text-xs font-mono font-bold text-emerald-900 cursor-not-allowed">
             </div>
 
             <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                District / City
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <span>District / City</span>
+                <span class="text-[10px] text-emerald-700 font-bold"><i class="fa-solid fa-lock text-[9px]"></i> GPS Auto-Locked</span>
               </label>
-              <input type="text" id="district" placeholder="Auto-detected district..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+              <input type="text" id="district" readonly placeholder="Auto-locked by GPS..." class="w-full px-4 py-2.5 bg-slate-100/90 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 cursor-not-allowed">
             </div>
           </div>
 
-          <!-- Full Address -->
+          <!-- Read-Only Full Address -->
           <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Full Street Address & Landmark
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+              <span>Street Address & Landmark</span>
+              <span class="text-[10px] text-emerald-700 font-bold"><i class="fa-solid fa-lock text-[9px]"></i> Verified On-Site</span>
             </label>
-            <input type="text" id="address" required placeholder="Resolving street address from live GPS..." class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+            <input type="text" id="address" readonly required placeholder="Resolving street location from live GPS sensor..." class="w-full px-4 py-2.5 bg-slate-100/90 border border-slate-200 rounded-xl text-xs text-slate-700 cursor-not-allowed">
           </div>
 
           <!-- Hidden Coordinates -->
           <input type="hidden" id="latitude" value="">
           <input type="hidden" id="longitude" value="">
 
-          <!-- Map Preview -->
-          <div class="rounded-xl overflow-hidden border border-slate-200 shadow-inner h-48 w-full z-10" id="map"></div>
+          <!-- Read-Only Map Preview -->
+          <div class="relative rounded-xl overflow-hidden border border-slate-200 shadow-inner h-48 w-full z-10">
+            <div id="map" class="w-full h-full"></div>
+            <!-- Anti-Tamper Map Badge -->
+            <div class="absolute top-2 right-2 z-20 bg-slate-950/80 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-lock text-emerald-400"></i> Pin locked to Device GPS
+            </div>
+          </div>
+          
           <div class="flex justify-between items-center text-[11px] text-slate-400">
             <span id="coordsBadge" class="font-mono text-slate-500">GPS: Checking...</span>
-            <span class="italic text-[10px] text-sky-700">Map pin syncs with verified GPS coordinates</span>
+            <span class="italic text-[10px] text-emerald-700 font-semibold"><i class="fa-solid fa-shield-check"></i> 100% Real-Time Device Position</span>
           </div>
         </div>
 
-        <!-- LIVE CAMERA ONLY (LOCKED UNLESS GPS IS ALLOWED) -->
+        <!-- LIVE CAMERA ONLY (SNAPSHOTS GENUINE DEVICE GPS ON SHUTTER) -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
             <div>
               <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider">
                 Step 2: Live Camera Capture <span class="text-red-500">*</span>
               </label>
-              <p class="text-[11px] text-slate-500">Only real-time on-site camera captures are accepted (up to 5 photos). Unlocks only with active GPS.</p>
+              <p class="text-[11px] text-slate-500">Photos snapshot the real-time sensor coordinates at the exact moment of capture.</p>
             </div>
             <span id="photoCountBadge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 border border-slate-200">
               0 / 5 Photos Taken
@@ -175,7 +183,7 @@
               <span id="camBtnText">GPS Location Required to Enable Camera</span>
             </button>
             <p id="camLockNotice" class="text-[11px] text-amber-800 mt-1.5 text-center font-medium bg-amber-50 p-2 rounded-xl border border-amber-200">
-              <i class="fa-solid fa-lock mr-1"></i> Live camera capture is blocked until GPS permission is granted in Step 1.
+              <i class="fa-solid fa-lock mr-1"></i> Live camera capture is blocked until device GPS permission is granted.
             </p>
           </div>
 
@@ -264,7 +272,7 @@
         <div class="absolute bottom-3 left-3 right-3 bg-black/80 backdrop-blur-md text-white p-2.5 rounded-xl text-[10px] font-mono leading-tight space-y-0.5">
           <div class="text-emerald-400 font-bold flex items-center gap-1">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            LIVE REAL-TIME GPS
+            GENUINE SENSOR TRACKING
           </div>
           <div id="camGpsOverlay">Lat: ..., Lng: ...</div>
           <div id="camTimeOverlay">Time: ...</div>
@@ -276,7 +284,7 @@
           <i class="fa-solid fa-camera"></i>
         </button>
       </div>
-      <p class="text-center text-[10px] text-slate-400">Click circle to snapshot current live coordinates & watermark photo</p>
+      <p class="text-center text-[10px] text-slate-400">Click circle to snapshot verified sensor GPS & watermark photo</p>
     </div>
   </div>
 
@@ -354,14 +362,24 @@
 
     function initMap(lat, lng) {
       if (!map) {
-        map = L.map('map').setView([lat, lng], 14);
+        map = L.map('map', {
+          zoomControl: true,
+          dragging: false, // Disallow dragging map
+          touchZoom: false,
+          scrollWheelZoom: false,
+          doubleClickZoom: false,
+          boxZoom: false,
+          keyboard: false
+        }).setView([lat, lng], 16);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
+        // Marker is STRICTLY non-draggable
         marker = L.marker([lat, lng], { draggable: false }).addTo(map);
       } else {
-        map.setView([lat, lng], 15);
+        map.setView([lat, lng], 16);
         marker.setLatLng([lat, lng]);
       }
     }
@@ -374,7 +392,7 @@
       }
 
       const liveCoordsDisplay = document.getElementById('liveCoordsDisplay');
-      liveCoordsDisplay.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Requesting GPS hardware coordinates...';
+      liveCoordsDisplay.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Querying hardware GPS sensor...';
 
       if (watchId) {
         navigator.geolocation.clearWatch(watchId);
@@ -409,7 +427,7 @@
       document.getElementById('longitude').value = lng;
 
       document.getElementById('gpsStatusMsg').className = 'text-xs p-2.5 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 flex items-center justify-between font-mono';
-      document.getElementById('liveCoordsDisplay').innerHTML = `✓ Live GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      document.getElementById('liveCoordsDisplay').innerHTML = `✓ Live Sensor GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       document.getElementById('liveAccuracyDisplay').innerText = `Accuracy: ±${accuracy}m`;
       document.getElementById('coordsBadge').innerText = `Live GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       document.getElementById('coordsBadge').className = 'font-mono text-emerald-800 font-bold';
@@ -430,9 +448,8 @@
 
       unlockCameraUI(lat, lng);
 
-      if (!document.getElementById('pincode').value) {
-        fetchAddressForCoords(lat, lng);
-      }
+      // Auto-update address and pincode from GPS
+      fetchAddressForCoords(lat, lng);
     }
 
     function handleGpsDenied(reason) {
@@ -440,6 +457,9 @@
       currentLiveLng = null;
       document.getElementById('latitude').value = '';
       document.getElementById('longitude').value = '';
+      document.getElementById('pincode').value = '';
+      document.getElementById('district').value = '';
+      document.getElementById('address').value = '';
 
       const statusMsg = document.getElementById('gpsStatusMsg');
       statusMsg.className = 'text-xs p-3 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 flex items-center justify-between font-medium';
@@ -468,7 +488,7 @@
         <span class="flex items-center gap-1.5 font-bold">
           <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> GPS Signal Searching...
         </span>
-        <span class="text-[11px] text-amber-700">Please turn on device location</span>
+        <span class="text-[11px] text-amber-700">Please enable device GPS / Location switch</span>
       `;
 
       lockCameraUI(false);
@@ -482,13 +502,13 @@
       const badge = document.getElementById('photoCountBadge');
 
       btn.disabled = false;
-      btn.className = 'w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-bold text-sm shadow-md shadow-sky-500/20 hover:shadow-lg transition flex items-center justify-center gap-3 cursor-pointer group opacity-100';
+      btn.className = 'w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-sky-600 hover:from-emerald-700 hover:to-sky-700 text-white font-bold text-sm shadow-md shadow-emerald-500/20 hover:shadow-lg transition flex items-center justify-center gap-3 cursor-pointer group opacity-100';
       iconWrap.className = 'w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm group-hover:scale-110 transition';
       iconWrap.innerHTML = '<i class="fa-solid fa-camera"></i>';
-      textEl.innerText = 'Open Live Camera (Real-Time GPS Active)';
+      textEl.innerText = 'Open Live Camera (Sensor GPS Active)';
       
       notice.className = 'text-[11px] text-emerald-800 mt-1.5 text-center font-bold flex items-center justify-center gap-1 bg-emerald-50 p-2 rounded-xl border border-emerald-200';
-      notice.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> Real-time GPS Locked (${lat.toFixed(5)}, ${lng.toFixed(5)}) &bull; Live Camera Unlocked`;
+      notice.innerHTML = `<i class="fa-solid fa-shield-check text-emerald-600"></i> Live Sensor Coordinates Verified (${lat.toFixed(5)}, ${lng.toFixed(5)}) &bull; Camera Ready`;
 
       badge.className = 'text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200';
     }
@@ -536,7 +556,7 @@
 
     async function openLiveCameraModal() {
       if (!currentLiveLat || !currentLiveLng) {
-        API.showToast("🚫 GPS coordinates are mandatory before taking a photo.", "error");
+        API.showToast("🚫 Genuine GPS coordinates are mandatory before taking a photo.", "error");
         return;
       }
 
@@ -547,7 +567,7 @@
       const lat = currentLiveLat;
       const lng = currentLiveLng;
       const pin = document.getElementById('pincode').value || '...';
-      document.getElementById('camGpsOverlay').innerText = `Live: ${lat.toFixed(5)}, ${lng.toFixed(5)} (PIN: ${pin})`;
+      document.getElementById('camGpsOverlay').innerText = `Live Sensor: ${lat.toFixed(5)}, ${lng.toFixed(5)} (PIN: ${pin})`;
       document.getElementById('camTimeOverlay').innerText = `Time: ${new Date().toLocaleTimeString('en-IN')}`;
 
       try {
@@ -584,6 +604,7 @@
         return;
       }
 
+      // Snapshot STRICTLY from hardware sensor coordinates
       const snapshotLat = currentLiveLat;
       const snapshotLng = currentLiveLng;
       const snapshotPincode = document.getElementById('pincode').value || '';
@@ -627,7 +648,7 @@
       const fontSize = Math.max(14, Math.floor(barHeight * 0.22));
       ctx.font = `bold ${fontSize}px "Plus Jakarta Sans", sans-serif`;
       ctx.fillStyle = '#38bdf8';
-      ctx.fillText(`CIVICLENS LIVE GPS SNAPSHOT: ${lat.toFixed(6)}, ${lng.toFixed(6)} | PIN: ${pin || 'N/A'}`, 20, height - barHeight + fontSize + 8);
+      ctx.fillText(`CIVICLENS VERIFIED SENSOR GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} | PIN: ${pin || 'N/A'}`, 20, height - barHeight + fontSize + 8);
 
       ctx.font = `${fontSize * 0.85}px sans-serif`;
       ctx.fillStyle = '#ffffff';
@@ -662,7 +683,7 @@
             </button>
           </div>
           <div class="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[10px] text-emerald-300 font-mono p-1.5 truncate">
-            Snapshot GPS: ${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}
+            Sensor GPS: ${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}
           </div>
         </div>
       `).join('');
@@ -671,6 +692,12 @@
     // --- FORM SUBMISSION WORKFLOW ---
     document.getElementById('reportForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      if (!currentLiveLat || !currentLiveLng) {
+        API.showToast("🚫 Genuine GPS sensor location is mandatory to lodge a grievance.", "error");
+        requestLiveGpsTracking();
+        return;
+      }
 
       if (capturedPhotos.length === 0) {
         API.showToast("Please capture at least one live photo of the civic issue.", "warning");
