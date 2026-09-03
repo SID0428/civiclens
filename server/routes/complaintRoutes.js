@@ -15,11 +15,11 @@ const upload = require('../middleware/uploadMiddleware');
 // Public live feed / map
 router.get('/public', getPublicComplaints);
 
-// Public / Guest Submit with Email OTP & Auto-Registration
-router.post('/submit-with-otp', upload.single('image'), submitComplaintWithOTP);
+// Public / Guest Submit with Email OTP & Geotagged Photos
+router.post('/submit-with-otp', upload.array('images', 5), submitComplaintWithOTP);
 
-// Logged In Citizen Route
-router.post('/', protect, authorize('citizen'), upload.single('image'), createComplaint);
+// Logged In Citizen Route (Supports multiple geotagged photos)
+router.post('/', protect, authorize('citizen'), upload.array('images', 5), createComplaint);
 router.get('/my', protect, authorize('citizen'), getMyComplaints);
 
 // Sub-Admin routes (District Pincode Scoped)

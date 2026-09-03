@@ -25,14 +25,30 @@ const ComplaintSchema = new mongoose.Schema(
       ],
       default: 'Other',
     },
+    // Primary / Legacy image URL
     imageUrl: {
       type: String,
-      required: [true, 'An image of the issue is required'],
+      required: [true, 'At least one geotagged photo is required'],
     },
+    // Multiple geotagged photos array
+    images: [
+      {
+        url: { type: String, required: true },
+        latitude: { type: Number, required: true },
+        longitude: { type: Number, required: true },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
     resolvedImageUrl: {
       type: String,
       default: '',
     },
+    resolvedImages: [
+      {
+        url: String,
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
     location: {
       type: {
         type: String,
@@ -46,11 +62,11 @@ const ComplaintSchema = new mongoose.Schema(
     },
     latitude: {
       type: Number,
-      required: true,
+      required: [true, 'GPS Latitude is strictly required'],
     },
     longitude: {
       type: Number,
-      required: true,
+      required: [true, 'GPS Longitude is strictly required'],
     },
     address: {
       type: String,

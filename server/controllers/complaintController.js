@@ -35,7 +35,7 @@ const createComplaintRecord = async ({
   title,
   description,
   category,
-  imageUrl,
+  images,
   latitude,
   longitude,
   address,
@@ -46,7 +46,16 @@ const createComplaintRecord = async ({
   citizenUser,
 }) => {
   const cleanPincode = (pincode || '').toString().trim();
-  
+  const latNum = parseFloat(latitude);
+  const lngNum = parseFloat(longitude);
+
+  if (isNaN(latNum) || isNaN(lngNum) || !latitude || !longitude) {
+    throw new Error('Strict GPS Coordinates (Latitude and Longitude) are mandatory for grievance lodgement.');
+  }
+
+  // Primary image
+  const primaryImageUrl = images && images.length > 0 ? images[0].url : '';
+
   // Auto-Routing: Find Sub-Admin mapped to this pincode and/or category
   let assignedAdmin = await User.findOne({
     role: 'subadmin',
@@ -65,14 +74,15 @@ const createComplaintRecord = async ({
     title,
     description,
     category: category || 'Other',
-    imageUrl,
-    latitude: parseFloat(latitude),
-    longitude: parseFloat(longitude),
+    imageUrl: primaryImageUrl,
+    images: images || [],
+    latitude: latNum,
+    longitude: lngNum,
     location: {
       type: 'Point',
-      coordinates: [parseFloat(longitude), parseFloat(latitude)],
+      coordinates: [lngNum, latNum],
     },
-    address: address || 'Location specified by GPS',
+    address: address || 'Geotagged location',
     pincode: cleanPincode,
     district: district || '',
     state: state || '',
@@ -84,8 +94,8 @@ const createComplaintRecord = async ({
       {
         status: 'Pending',
         message: assignedAdmin
-          ? `Complaint registered and routed to District Officer (${assignedAdmin.name}) for PIN ${cleanPincode}`
-          : `Complaint registered under PIN ${cleanPincode}. Awaiting assignment to District Admin.`,
+          ? `Grievance registered with GPS (${latNum.toFixed(5)}, ${lngNum.toFixed(5)}) and routed to District Officer (${assignedAdmin.name}) for PIN ${cleanPincode}`
+          : `Grievance registered with GPS (${latNum.toFixed(5)}, ${lngNum.toFixed(5)}) for PIN ${cleanPincode}. Awaiting assignment.`,
         updatedBy: citizenUser._id,
         updaterRole: 'citizen',
         timestamp: new Date(),
@@ -96,7 +106,27 @@ const createComplaintRecord = async ({
   return { complaint, assignedAdmin };
 };
 
-// @desc    1. Create a New Complaint (Logged In Citizen)
+// Process multiple uploaded files into Cloudinary URLs
+const processUploadedImages = async (files, reqBodyLat, reqBodyLng) => {
+  const images = [];
+  const lat = parseFloat(reqBodyLat);
+  const lng = parseFloat(reqBodyLng);
+
+  if (files && files.length > 0) {
+    for (const file of files) {
+      const result = await uploadToCloudinary(file.buffer, 'civiclens/issues');
+      images.push({
+        url: result.secure_url,
+        latitude: lat,
+        longitude: lng,
+        timestamp: new Date(),
+      });
+    }
+  }
+  return images;
+};
+
+// @desc    1. Create a New Complaint with Geotagged Photos (Logged In Citizen)
 // @route   POST /api/complaints
 // @access  Private (Citizen)
 exports.createComplaint = async (req, res) => {
@@ -114,31 +144,35 @@ exports.createComplaint = async (req, res) => {
       priority,
     } = req.body;
 
-    if (!title || !description || !pincode || !latitude || !longitude) {
+    if (!latitude || !longitude || isNaN(parseFloat(latitude)) || isNaN(parseFloat(longitude))) {
       return res.status(400).json({
         success: false,
-        message: 'Title, description, pincode, and coordinates are required.',
+        message: 'Strict GPS Location is mandatory. Please capture location before submitting.',
       });
     }
 
-    let imageUrl = '';
-    if (req.file) {
-      const result = await uploadToCloudinary(req.file.buffer, 'civiclens/issues');
-      imageUrl = result.secure_url;
-    } else if (req.body.imageUrl) {
-      imageUrl = req.body.imageUrl;
-    } else {
+    if (!title || !description || !pincode) {
       return res.status(400).json({
         success: false,
-        message: 'Please upload a photo of the civic issue.',
+        message: 'Title, description, and pincode are required.',
       });
     }
+
+    const files = req.files || (req.file ? [req.file] : []);
+    if (files.length === 0 && !req.body.imageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one live geotagged photo of the civic issue is required.',
+      });
+    }
+
+    const images = await processUploadedImages(files, latitude, longitude);
 
     const { complaint } = await createComplaintRecord({
       title,
       description,
       category,
-      imageUrl,
+      images,
       latitude,
       longitude,
       address,
@@ -151,7 +185,7 @@ exports.createComplaint = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Complaint lodged successfully and routed to District Sub-Admin!',
+      message: 'Grievance with geotagged photo(s) lodged and routed to District Officer!',
       complaint,
     });
   } catch (error) {
@@ -160,7 +194,7 @@ exports.createComplaint = async (req, res) => {
   }
 };
 
-// @desc    2. Guest Citizen Submit with Email OTP & Auto-Account Creation
+// @desc    2. Guest Citizen Submit with Email OTP & Geotagged Photos
 // @route   POST /api/complaints/submit-with-otp
 // @access  Public
 exports.submitComplaintWithOTP = async (req, res) => {
@@ -181,12 +215,19 @@ exports.submitComplaintWithOTP = async (req, res) => {
       priority,
     } = req.body;
 
+    if (!latitude || !longitude || isNaN(parseFloat(latitude)) || isNaN(parseFloat(longitude))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Strict GPS Location is mandatory. Photos must have geotag coordinates.',
+      });
+    }
+
     if (!email || !otp) {
       return res.status(400).json({ success: false, message: 'Email and verification OTP are required.' });
     }
 
-    if (!title || !description || !pincode || !latitude || !longitude) {
-      return res.status(400).json({ success: false, message: 'Title, description, pincode, and location are required.' });
+    if (!title || !description || !pincode) {
+      return res.status(400).json({ success: false, message: 'Title, description, and pincode are required.' });
     }
 
     // Verify OTP
@@ -206,29 +247,24 @@ exports.submitComplaintWithOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid OTP code. Please enter the correct 6 digits.' });
     }
 
-    // Mark email verified & update user name if provided
     user.name = name || user.name || email.split('@')[0];
     user.isEmailVerified = true;
-    user.otp = undefined; // clear OTP
+    user.otp = undefined;
     await user.save();
 
-    // Image Upload
-    let imageUrl = '';
-    if (req.file) {
-      const result = await uploadToCloudinary(req.file.buffer, 'civiclens/issues');
-      imageUrl = result.secure_url;
-    } else if (req.body.imageUrl) {
-      imageUrl = req.body.imageUrl;
-    } else {
-      return res.status(400).json({ success: false, message: 'Issue photo is required.' });
+    // Process multiple geotagged photos
+    const files = req.files || (req.file ? [req.file] : []);
+    if (files.length === 0 && !req.body.imageUrl) {
+      return res.status(400).json({ success: false, message: 'Live geotagged photo is required.' });
     }
 
-    // Create complaint attached to this verified user
+    const images = await processUploadedImages(files, latitude, longitude);
+
     const { complaint } = await createComplaintRecord({
       title,
       description,
       category,
-      imageUrl,
+      images,
       latitude,
       longitude,
       address,
@@ -239,12 +275,11 @@ exports.submitComplaintWithOTP = async (req, res) => {
       citizenUser: user,
     });
 
-    // Generate JWT token so citizen is instantly logged in
     const token = generateToken(user._id, user.role);
 
     res.status(201).json({
       success: true,
-      message: 'Account verified and grievance registered successfully!',
+      message: 'Email verified, geotagged photos uploaded & grievance lodged!',
       token,
       user: {
         id: user._id,

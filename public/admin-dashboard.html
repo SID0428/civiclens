@@ -202,44 +202,66 @@
           return;
         }
 
-        listEl.innerHTML = complaintsCache.map(item => `
-          <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition">
-            <div>
-              <div class="relative aspect-video bg-slate-100">
-                <img src="${item.imageUrl}" class="w-full h-full object-cover">
-                <span class="absolute top-3 right-3 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase shadow ${getStatusClass(item.status)}">
-                  ${item.status}
-                </span>
-                <span class="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-mono font-bold">
-                  PIN: ${item.pincode}
-                </span>
-              </div>
+        listEl.innerHTML = complaintsCache.map(item => {
+          const mainImg = (item.images && item.images.length > 0) ? item.images[0].url : (item.imageUrl || '');
+          const extraPhotos = (item.images && item.images.length > 1) ? item.images.slice(1) : [];
+          const lat = item.latitude ? item.latitude.toFixed(5) : '...';
+          const lng = item.longitude ? item.longitude.toFixed(5) : '...';
 
-              <div class="p-5 space-y-3">
-                <div class="flex justify-between items-center text-xs">
-                  <span class="font-bold text-blue-600">${item.category}</span>
-                  <span class="text-slate-400 text-[10px]">${new Date(item.createdAt).toLocaleDateString()}</span>
+          return `
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+              <div>
+                <div class="relative aspect-video bg-slate-100">
+                  <img src="${mainImg}" class="w-full h-full object-cover">
+                  <span class="absolute top-3 right-3 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase shadow ${getStatusClass(item.status)}">
+                    ${item.status}
+                  </span>
+                  <div class="absolute bottom-2 left-2 flex gap-1.5">
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-mono font-bold">
+                      PIN ${item.pincode}
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg bg-blue-900/80 backdrop-blur-md text-blue-200 text-[10px] font-mono font-bold">
+                      GPS: ${lat}, ${lng}
+                    </span>
+                  </div>
                 </div>
-                <h3 class="font-bold text-slate-900 text-base line-clamp-1">${item.title}</h3>
-                <p class="text-slate-500 text-xs line-clamp-2">${item.description}</p>
-                <div class="text-[11px] text-slate-400 truncate">
-                  <i class="fa-solid fa-location-dot text-slate-400 mr-1"></i> ${item.address}
-                </div>
-                ${item.citizen ? `
-                  <div class="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                    Reported by: <span class="text-slate-900 font-bold">${item.citizen.name}</span> (${item.citizen.phone || item.citizen.email})
+
+                ${extraPhotos.length > 0 ? `
+                  <div class="px-5 pt-3 flex gap-2 overflow-x-auto">
+                    ${extraPhotos.map(p => `
+                      <a href="${p.url}" target="_blank" class="block w-14 h-14 rounded-xl overflow-hidden border border-slate-200 shadow-xs flex-shrink-0 hover:scale-105 transition">
+                        <img src="${p.url}" class="w-full h-full object-cover">
+                      </a>
+                    `).join('')}
                   </div>
                 ` : ''}
+
+                <div class="p-5 space-y-3">
+                  <div class="flex justify-between items-center text-xs">
+                    <span class="font-bold text-blue-600">${item.category}</span>
+                    <span class="text-slate-400 text-[10px]">${new Date(item.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <h3 class="font-bold text-slate-900 text-base line-clamp-1">${item.title}</h3>
+                  <p class="text-slate-500 text-xs line-clamp-2">${item.description}</p>
+                  <div class="text-[11px] text-slate-500 truncate">
+                    <i class="fa-solid fa-location-dot text-blue-600 mr-1"></i> ${item.address}
+                  </div>
+                  ${item.citizen ? `
+                    <div class="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      Reported by: <span class="text-slate-900 font-bold">${item.citizen.name}</span> (${item.citizen.phone || item.citizen.email})
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+
+              <div class="p-5 pt-0">
+                <button onclick="openStatusModal('${item._id}')" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-pen-to-square"></i> Update Status & Resolution Proof
+                </button>
               </div>
             </div>
-
-            <div class="p-5 pt-0">
-              <button onclick="openStatusModal('${item._id}')" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-pen-to-square"></i> Update Status & Resolution Proof
-              </button>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
 
       } catch (err) {
         listEl.innerHTML = `<div class="col-span-full text-center text-red-600 p-8">${err.message || 'Failed to load subadmin feed'}</div>`;

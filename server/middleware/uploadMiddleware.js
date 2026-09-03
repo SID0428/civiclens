@@ -1,6 +1,6 @@
 const multer = require('multer');
 
-// Store file in memory buffer for streaming to Cloudinary
+// Store files in memory buffer for streaming to Cloudinary
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
@@ -14,7 +14,8 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 15 * 1024 * 1024, // 15MB limit
+    files: 6, // Up to 6 images
   },
   fileFilter,
 });
