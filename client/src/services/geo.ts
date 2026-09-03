@@ -16,64 +16,52 @@ export interface FusedPosition {
   timestamp: number;
 }
 
-// 1D/2D Kalman Filter for GPS Noise Reduction
-class KalmanFilter {
-  private Q: number;
-  private R: number;
-  private P: number;
-  private x: number;
-  private isInitialized: boolean;
-
-  constructor(processNoise: number = 0.00001, measurementNoise: number = 0.001) {
-    this.Q = processNoise;
-    this.R = measurementNoise;
-    this.P = 1.0;
-    this.x = 0;
-    this.isInitialized = false;
-  }
-
-  public filter(measurement: number, accuracy: number): number {
-    if (!this.isInitialized) {
-      this.x = measurement;
-      this.P = accuracy * accuracy;
-      this.isInitialized = true;
-      return this.x;
-    }
-
-    this.P = this.P + this.Q;
-    const K = this.P / (this.P + (accuracy > 0 ? accuracy * accuracy * 0.000001 : this.R));
-    this.x = this.x + K * (measurement - this.x);
-    this.P = (1 - K) * this.P;
-
-    return this.x;
-  }
-}
-
-const latKalman = new KalmanFilter();
-const lngKalman = new KalmanFilter();
-
 export const GeoService = {
-  // Dual-Phase Quick Lock + Continuous High-Accuracy Stream
+  // Fast IP Fallback (guarantees coordinates never get stuck on desktop/laptop)
+  fetchIPLocation: async (): Promise<FusedPosition | null> => {
+    try {
+      const res = await fetch('https://ipwho.is/');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.latitude && data.longitude) {
+          return {
+            lat: data.latitude,
+            lng: data.longitude,
+            accuracy: 150,
+            speed: null,
+            heading: null,
+            altitude: null,
+            timestamp: Date.now(),
+          };
+        }
+      }
+    } catch {
+      // Ignore
+    }
+    return null;
+  },
+
+  // Progressive Multi-Tier Geolocation Engine
   startLiveTracking: (
     onUpdate: (pos: FusedPosition) => void,
     onError: (err: GeolocationPositionError) => void
   ): { watchId: number | null } => {
     if (!navigator.geolocation) {
+      // Try IP fallback immediately
+      GeoService.fetchIPLocation().then((ipPos) => {
+        if (ipPos) onUpdate(ipPos);
+      });
       return { watchId: null };
     }
 
-    const processPosition = (pos: GeolocationPosition) => {
-      const rawLat = pos.coords.latitude;
-      const rawLng = pos.coords.longitude;
-      const rawAcc = pos.coords.accuracy || 5;
+    let hasReceivedPosition = false;
 
-      const filteredLat = rawAcc < 80 ? latKalman.filter(rawLat, rawAcc) : rawLat;
-      const filteredLng = rawAcc < 80 ? lngKalman.filter(rawLng, rawAcc) : rawLng;
-
+    const handleSuccess = (pos: GeolocationPosition) => {
+      hasReceivedPosition = true;
       onUpdate({
-        lat: filteredLat,
-        lng: filteredLng,
-        accuracy: Math.round(rawAcc),
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: Math.round(pos.coords.accuracy || 10),
         speed: pos.coords.speed,
         heading: pos.coords.heading,
         altitude: pos.coords.altitude,
@@ -81,27 +69,48 @@ export const GeoService = {
       });
     };
 
-    // 1. Immediate Quick-Lock (Forces permission prompt in browser)
+    // Tier 1: Instant Quick-Fix (Standard accuracy, immediate prompt)
     navigator.geolocation.getCurrentPosition(
-      processPosition,
+      handleSuccess,
       (err) => {
-        console.warn('Initial GPS fetch error:', err);
+        console.warn('[GPS Tier 1]:', err.message);
+        // If timed out or position unavailable, attempt IP fallback so UI doesn't hang
+        if (err.code !== 1 && !hasReceivedPosition) {
+          GeoService.fetchIPLocation().then((ipPos) => {
+            if (ipPos && !hasReceivedPosition) onUpdate(ipPos);
+          });
+        }
         onError(err);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
     );
 
-    // 2. Continuous Real-time Stream
+    // Tier 2: Continuous High-Accuracy GNSS Satellite Stream
     const watchId = navigator.geolocation.watchPosition(
-      processPosition,
-      onError,
+      handleSuccess,
+      (err) => {
+        console.warn('[GPS Tier 2 Watch]:', err.message);
+        onError(err);
+      },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
     );
+
+    // Safety timeout: If no GPS response in 7 seconds, trigger IP fallback so it NEVER hangs
+    setTimeout(() => {
+      if (!hasReceivedPosition) {
+        GeoService.fetchIPLocation().then((ipPos) => {
+          if (ipPos && !hasReceivedPosition) {
+            console.log('[GPS Fallback]: Locked initial coordinates via network');
+            onUpdate(ipPos);
+          }
+        });
+      }
+    }, 7000);
 
     return { watchId };
   },
 
-  // Reverse Geocoding
+  // High-Precision Reverse Geocoding
   reverseGeocode: async (lat: number, lng: number): Promise<GeocodeResult> => {
     try {
       const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`;

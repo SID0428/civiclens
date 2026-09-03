@@ -74,9 +74,9 @@ export const ReportIssue: React.FC = () => {
       },
       (err: GeolocationPositionError) => {
         console.warn('GPS error callback:', err);
-        setGpsLoading(false);
         if (err.code === 1) {
           setGpsDenied(true);
+          setGpsLoading(false);
         }
       }
     );
@@ -293,7 +293,7 @@ export const ReportIssue: React.FC = () => {
               </div>
             </div>
 
-            {/* GPS Status Alert (If Denied or Loading) */}
+            {/* GPS Status Alert (If Denied) */}
             {gpsDenied && (
               <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                 <div className="flex items-center gap-2.5 text-xs text-rose-800 font-medium">
@@ -319,7 +319,7 @@ export const ReportIssue: React.FC = () => {
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
                   <span>Current Latitude</span>
                   <span className="text-emerald-600 font-mono text-[9px] font-bold">
-                    {liveLat !== null ? (isLatPulsing ? 'CHANGING' : 'LOCKED') : 'WAITING'}
+                    {liveLat !== null ? (isLatPulsing ? 'CHANGING' : 'LOCKED') : 'LOCATING'}
                   </span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1 flex items-center gap-2">
@@ -328,7 +328,7 @@ export const ReportIssue: React.FC = () => {
                   ) : (
                     <span className="text-sm font-sans text-slate-400 font-medium flex items-center gap-1.5">
                       <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
-                      <span>Acquiring Sensor...</span>
+                      <span>Locking Coordinates...</span>
                     </span>
                   )}
                 </div>
@@ -341,7 +341,7 @@ export const ReportIssue: React.FC = () => {
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
                   <span>Current Longitude</span>
                   <span className="text-emerald-600 font-mono text-[9px] font-bold">
-                    {liveLng !== null ? (isLngPulsing ? 'CHANGING' : 'LOCKED') : 'WAITING'}
+                    {liveLng !== null ? (isLngPulsing ? 'CHANGING' : 'LOCKED') : 'LOCATING'}
                   </span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-900 mt-1 flex items-center gap-2">
@@ -350,7 +350,7 @@ export const ReportIssue: React.FC = () => {
                   ) : (
                     <span className="text-sm font-sans text-slate-400 font-medium flex items-center gap-1.5">
                       <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
-                      <span>Acquiring Sensor...</span>
+                      <span>Locking Coordinates...</span>
                     </span>
                   )}
                 </div>
@@ -420,7 +420,7 @@ export const ReportIssue: React.FC = () => {
             ) : (
               <div className="h-48 rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-400 text-xs space-y-2">
                 <MapPin className="w-6 h-6 text-slate-300 animate-bounce" />
-                <span>Map will render when GPS permission is granted</span>
+                <span>Map will render as soon as coordinates are locked</span>
               </div>
             )}
           </div>
