@@ -136,4 +136,4 @@ const sendSubAdminWelcomeEmail = async (officer) => {
   }
 };
 
-module.exports = { createTransporter, sendOTPEmail, sendSubAdminWelcomeEmail };
+module.exports = { getTransporter, createTransporter: getTransporter, sendOTPEmail, sendSubAdminWelcomeEmail };
