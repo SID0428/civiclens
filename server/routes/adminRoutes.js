@@ -8,6 +8,7 @@ const {
   getGovernanceStats,
   updateSubAdmin,
   deleteSubAdmin,
+  sendSubAdminCredentialsEmail,
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -15,6 +16,7 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 router.post('/subadmins', protect, authorize('superadmin'), createSubAdmin);
 router.post('/create-subadmin', protect, authorize('superadmin'), createSubAdmin);
 router.get('/subadmins', protect, authorize('superadmin'), getAllSubAdmins);
+router.post('/subadmins/:id/send-email', protect, authorize('superadmin'), sendSubAdminCredentialsEmail);
 router.put('/subadmins/:id', protect, authorize('superadmin'), updateSubAdmin);
 router.delete('/subadmins/:id', protect, authorize('superadmin'), deleteSubAdmin);
 router.put('/subadmins/:id/pincodes', protect, authorize('superadmin'), updateSubAdminPincodes || ((req, res) => res.json({ success: true })));

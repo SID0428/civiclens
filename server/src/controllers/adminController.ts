@@ -162,3 +162,43 @@ export const getGovernanceStats = async (_req: Request, res: Response): Promise<
     res.status(500).json({ success: false, message: (error as Error).message });
   }
 };
+
+// @desc    Send / Resend Sub-Admin Officer Credentials Email
+// @route   POST /api/admin/subadmins/:id/send-email
+export const sendSubAdminCredentialsEmail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { password } = req.body;
+    const subAdmin = await User.findById(req.params.id);
+    if (!subAdmin || subAdmin.role !== 'subadmin') {
+      res.status(404).json({ success: false, message: 'District Sub-Admin officer not found.' });
+      return;
+    }
+
+    const { sendSubAdminWelcomeEmail } = require('../config/nodemailer');
+    const result = await sendSubAdminWelcomeEmail({
+      name: subAdmin.name,
+      email: subAdmin.email,
+      rawPassword: password || undefined,
+      department: subAdmin.department || 'General Administration',
+      assignedDistrict: subAdmin.assignedDistrict || 'State Jurisdiction',
+      assignedPincodes: subAdmin.assignedPincodes || [],
+      officialId: subAdmin.officialId || `GOV-${subAdmin._id.toString().slice(-5).toUpperCase()}`,
+    });
+
+    if (result && result.error) {
+      res.status(500).json({
+        success: false,
+        message: `Failed to dispatch email to ${subAdmin.email}: ${result.error}`,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Official credentials email dispatched successfully to ${subAdmin.name} (${subAdmin.email})!`,
+    });
+  } catch (error) {
+    console.error('Send SubAdmin Email Error:', error);
+    res.status(500).json({ success: false, message: (error as Error).message || 'Failed to dispatch officer credentials email.' });
+  }
+};

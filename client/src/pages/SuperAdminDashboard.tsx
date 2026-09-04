@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, UserPlus, Users, Building, Activity, RefreshCw, Edit3, Trash2 } from 'lucide-react';
+import { ShieldCheck, UserPlus, Users, Building, Activity, RefreshCw, Edit3, Trash2, Mail, Send, ExternalLink } from 'lucide-react';
 import { API } from '../services/api';
 import { User } from '../types';
 
@@ -32,6 +32,11 @@ export const SuperAdminDashboard: React.FC = () => {
   const [editPincodes, setEditPincodes] = useState('');
   const [editPassword, setEditPassword] = useState('');
   const [updating, setUpdating] = useState(false);
+
+  // Mail credentials modal
+  const [emailingAdmin, setEmailingAdmin] = useState<User | null>(null);
+  const [mailPassword, setMailPassword] = useState('');
+  const [sendingMail, setSendingMail] = useState(false);
 
   useEffect(() => {
     if (!user || role !== 'superadmin') {
@@ -133,6 +138,26 @@ export const SuperAdminDashboard: React.FC = () => {
     }
   };
 
+  const handleSendCredentialsEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailingAdmin) return;
+    setSendingMail(true);
+
+    try {
+      const adminId = emailingAdmin._id || emailingAdmin.id;
+      const res = await API.request(`/admin/subadmins/${adminId}/send-email`, 'POST', {
+        password: mailPassword,
+      });
+      alert(res.message || `Credentials email dispatched to ${emailingAdmin.email}!`);
+      setEmailingAdmin(null);
+      setMailPassword('');
+    } catch (err: any) {
+      alert(err.message || 'Failed to send credentials email.');
+    } finally {
+      setSendingMail(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       {/* Top Banner */}
@@ -222,6 +247,16 @@ export const SuperAdminDashboard: React.FC = () => {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setEmailingAdmin(admin);
+                            setMailPassword('');
+                          }}
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-bold transition flex items-center gap-1 border border-emerald-200"
+                        >
+                          <Mail className="w-3 h-3" />
+                          <span>Mail Info</span>
+                        </button>
                         <button
                           onClick={() => openEditModal(admin)}
                           className="px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-[11px] font-bold transition flex items-center gap-1 border border-sky-200"
@@ -454,6 +489,96 @@ export const SuperAdminDashboard: React.FC = () => {
                   className="px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow transition"
                 >
                   {updating ? 'Updating...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Mail Credentials Modal */}
+      {emailingAdmin && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-2xl">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                <Mail className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Send Officer Credentials Email</h3>
+                <p className="text-xs text-slate-500">Dispatch official login credentials & portal URL to officer's inbox</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2 text-xs">
+              <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                <span className="font-bold text-slate-500 uppercase">Officer Name:</span>
+                <span className="font-bold text-slate-900">{emailingAdmin.name}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                <span className="font-bold text-slate-500 uppercase">Official Email:</span>
+                <span className="font-semibold text-slate-800">{emailingAdmin.email}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                <span className="font-bold text-slate-500 uppercase">Department:</span>
+                <span className="font-semibold text-blue-700">{emailingAdmin.department || 'General Administration'}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                <span className="font-bold text-slate-500 uppercase">Assigned District:</span>
+                <span className="font-bold text-sky-700">{emailingAdmin.assignedDistrict || 'State Jurisdiction'}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                <span className="font-bold text-slate-500 uppercase">Mapped Pincodes:</span>
+                <span className="font-mono font-bold text-slate-900">
+                  {emailingAdmin.assignedPincodes?.join(', ') || 'None'}
+                </span>
+              </div>
+              <div className="flex justify-between pt-1">
+                <span className="font-bold text-slate-500 uppercase">Admin Login URL:</span>
+                <a
+                  href="https://civiclens-yeq3.vercel.app/admin/login"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-sky-600 hover:underline flex items-center gap-1"
+                >
+                  <span>civiclens.../admin/login</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+
+            <form onSubmit={handleSendCredentialsEmail} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Include / Reset Password (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={mailPassword}
+                  onChange={(e) => setMailPassword(e.target.value)}
+                  placeholder="Enter password to include in email (e.g. OfficerPass@123)"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none font-mono"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Leave blank if the officer already knows their current password.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEmailingAdmin(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingMail}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{sendingMail ? 'Sending Email...' : 'Send Official Credentials Email'}</span>
                 </button>
               </div>
             </form>
