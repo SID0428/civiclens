@@ -1,8 +1,19 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Camera, MapPin, ShieldCheck, ArrowRight, CheckCircle2, Clock, Users, Building2 } from 'lucide-react';
+import { API } from '../services/api';
 
 export const Home: React.FC = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const role = API.getRole();
+    if (role === 'superadmin') {
+      navigate('/superadmin/dashboard', { replace: true });
+    } else if (role === 'subadmin') {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [navigate]);
   return (
     <div className="space-y-16 py-8 px-4 sm:px-6 max-w-7xl mx-auto">
       {/* Hero Section */}

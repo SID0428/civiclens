@@ -55,6 +55,15 @@ export const ReportIssue: React.FC = () => {
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    const role = API.getRole();
+    if (role === 'superadmin') {
+      navigate('/superadmin/dashboard', { replace: true });
+      return;
+    } else if (role === 'subadmin') {
+      navigate('/admin/dashboard', { replace: true });
+      return;
+    }
+
     startGpsTracking();
 
     return () => {
