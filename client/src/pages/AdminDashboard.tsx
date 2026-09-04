@@ -163,7 +163,7 @@ export const AdminDashboard: React.FC = () => {
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-bold text-slate-500 uppercase">Assigned In Pincode</div>
+          <div className="text-xs font-bold text-slate-500 uppercase">Assigned In District</div>
           <div className="text-3xl font-black text-slate-900 mt-1">{total}</div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -260,7 +260,7 @@ export const AdminDashboard: React.FC = () => {
             <h3 className="text-lg font-bold text-slate-900">No Complaints Found</h3>
             <p className="text-xs text-slate-500 mt-1">
               {selectedDepartment === 'All'
-                ? 'No pending civic complaints in your assigned district pincodes.'
+                ? 'No pending civic complaints in your assigned district.'
                 : `No complaints found for "${selectedDepartment}".`}
             </p>
           </div>

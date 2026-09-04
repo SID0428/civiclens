@@ -29,14 +29,60 @@ const generateToken = (id, role) => {
   );
 };
 
-const buildDistrictRegex = (districtStr) => {
-  if (!districtStr) return null;
+const buildDistrictRegexList = (districtStr) => {
+  if (!districtStr) return [];
   const raw = districtStr.toString().trim();
   const cleaned = raw.replace(/district|city|county/gi, '').trim();
-  const target = cleaned || raw;
-  if (!target) return null;
-  const escaped = target.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&').replace(/\s+/g, '\\s+');
-  return new RegExp(escaped, 'i');
+  if (!cleaned && !raw) return [];
+
+  const targets = new Set();
+  if (raw) targets.add(raw);
+  if (cleaned) targets.add(cleaned);
+
+  const low = (cleaned || raw).toLowerCase();
+
+  // Known Indian District Aliases & Variations
+  if (low.includes('gautam') || low.includes('noida') || low.includes('gb nagar') || low.includes('buddh')) {
+    targets.add('Gautam Buddha Nagar');
+    targets.add('Gautam Buddh Nagar');
+    targets.add('G.B. Nagar');
+    targets.add('GB Nagar');
+    targets.add('Noida');
+    targets.add('Greater Noida');
+    targets.add('Gautam');
+  } else if (low.includes('bengaluru') || low.includes('bangalore')) {
+    targets.add('Bengaluru');
+    targets.add('Bangalore');
+  } else if (low.includes('gurugram') || low.includes('gurgaon')) {
+    targets.add('Gurugram');
+    targets.add('Gurgaon');
+  } else if (low.includes('prayagraj') || low.includes('allahabad')) {
+    targets.add('Prayagraj');
+    targets.add('Allahabad');
+  } else if (low.includes('ayodhya') || low.includes('faizabad')) {
+    targets.add('Ayodhya');
+    targets.add('Faizabad');
+  } else if (low.includes('kanpur')) {
+    targets.add('Kanpur');
+    targets.add('Kanpur Nagar');
+    targets.add('Kanpur Dehat');
+  }
+
+  const regexes = [];
+  for (const t of targets) {
+    if (!t) continue;
+    const esc = t.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&').replace(/\s+/g, '\\s+');
+    regexes.push(new RegExp(esc, 'i'));
+  }
+
+  // Token regex matching (e.g. Gautam OR Buddh OR Nagar)
+  const tokens = (cleaned || raw).split(/\s+/).filter((w) => w.length >= 4);
+  for (const token of tokens) {
+    const escToken = token.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&');
+    regexes.push(new RegExp(escToken, 'i'));
+  }
+
+  return regexes;
 };
 
 const fetchReverseGeocode = async (lat, lng) => {
@@ -98,23 +144,23 @@ const createComplaintRecord = async ({
   }
 
   const primaryImageUrl = images && images.length > 0 ? images[0].url : '';
-  const distRegex = buildDistrictRegex(cleanDistrict);
+  const distRegexes = buildDistrictRegexList(cleanDistrict);
 
-  // 1. Try District + Category match (Case-Insensitive small/upper case)
+  // 1. Try District + Category match (Case-Insensitive small/upper case & aliases)
   let assignedAdmin = null;
-  if (distRegex) {
+  if (distRegexes.length > 0) {
     assignedAdmin = await User.findOne({
       role: 'subadmin',
-      assignedDistrict: distRegex,
-      $or: [{ department: category }, { department: 'All Departments' }, { department: 'General Civic Administration' }, { department: '' }, { department: { $exists: false } }],
+      $or: distRegexes.map((r) => ({ assignedDistrict: r })),
+      department: { $in: [category, 'All Departments', 'General Civic Administration', '', undefined] },
     });
   }
 
-  // 2. Try District match (Case-Insensitive small/upper case)
-  if (!assignedAdmin && distRegex) {
+  // 2. Try District match (Case-Insensitive small/upper case & aliases)
+  if (!assignedAdmin && distRegexes.length > 0) {
     assignedAdmin = await User.findOne({
       role: 'subadmin',
-      assignedDistrict: distRegex,
+      $or: distRegexes.map((r) => ({ assignedDistrict: r })),
     });
   }
 
@@ -386,17 +432,12 @@ const getSubAdminComplaints = async (req, res) => {
     if (isStatewide) {
       query = {}; // Super-Admin / All Jurisdiction access
     } else {
-      const distRegex = buildDistrictRegex(district);
-      const cleanRegex = buildDistrictRegex(cleanDist);
+      const distRegexes = buildDistrictRegexList(district);
 
       const districtOrConditions = [];
-      if (distRegex) {
-        districtOrConditions.push({ district: distRegex });
-        districtOrConditions.push({ address: distRegex });
-      }
-      if (cleanRegex && cleanRegex.source !== distRegex?.source) {
-        districtOrConditions.push({ district: cleanRegex });
-        districtOrConditions.push({ address: cleanRegex });
+      for (const rx of distRegexes) {
+        districtOrConditions.push({ district: rx });
+        districtOrConditions.push({ address: rx });
       }
 
       query = {
@@ -442,8 +483,10 @@ const getSuperAdminComplaints = async (req, res) => {
     const query = {};
     if (pincode) query.pincode = pincode;
     if (district) {
-      const distRegex = buildDistrictRegex(district);
-      if (distRegex) query.district = distRegex;
+      const distRegexes = buildDistrictRegexList(district);
+      if (distRegexes.length > 0) {
+        query.$or = distRegexes.map((rx) => ({ district: rx }));
+      }
     }
     if (status && status !== 'All') query.status = status;
     if (category && category !== 'All') query.category = category;
