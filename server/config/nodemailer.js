@@ -31,6 +31,9 @@ const getTransporter = () => {
 const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
   const transporter = getTransporter();
 
+  // Always log OTP to server console so developers/testers can easily inspect generated codes
+  console.log(`[OTP DISPATCHED] OTP for ${toEmail}: ${otpCode} (Purpose: ${purpose})`);
+
   const mailOptions = {
     from: `"CivicLens Portal" <${process.env.EMAIL_USER || 'noreply@civiclens.gov.in'}>`,
     to: toEmail,
@@ -55,8 +58,13 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
     `,
   };
 
+  const isConfigured = process.env.EMAIL_USER &&
+                       process.env.EMAIL_PASS &&
+                       !process.env.EMAIL_PASS.includes('your_') &&
+                       !process.env.EMAIL_PASS.includes('xxxx');
+
   try {
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    if (isConfigured) {
       const info = await transporter.sendMail(mailOptions);
       console.log(`[Google SMTP] OTP email sent to ${toEmail}. MessageId: ${info.messageId}`);
       return { success: true, messageId: info.messageId };
@@ -66,7 +74,7 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
     }
   } catch (error) {
     console.error(`[Google SMTP Error] Failed to send email: ${error.message}`);
-    // Return dev simulated OTP so frontend doesn't crash during demo if credentials not set yet
+    // Return dev simulated OTP so frontend doesn't crash during demo if credentials fail
     return { success: true, devMode: true, otpCode, error: error.message };
   }
 };

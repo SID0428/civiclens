@@ -49,15 +49,73 @@ export const sendEmailOTP = async (req: Request, res: Response): Promise<void> =
 
     await user.save();
 
+    const isConfigured = process.env.EMAIL_USER &&
+                         process.env.EMAIL_PASS &&
+                         !process.env.EMAIL_PASS.includes('your_') &&
+                         !process.env.EMAIL_PASS.includes('xxxx');
+
     await sendOTPEmail(email, otpCode, purpose);
 
     res.status(200).json({
       success: true,
       message: `Verification OTP dispatched to ${email}`,
-      devOtp: (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || process.env.EMAIL_PASS.includes('xxxx')) ? otpCode : undefined,
+      devOtp: (!isConfigured || process.env.NODE_ENV !== 'production') ? otpCode : undefined,
     });
   } catch (error) {
     console.error('Send OTP Error:', error);
+    res.status(500).json({ success: false, message: (error as Error).message });
+  }
+};
+
+// @desc    Verify OTP for Login
+// @route   POST /api/auth/verify-otp
+export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      res.status(400).json({ success: false, message: 'Email and OTP are required.' });
+      return;
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user || !user.otp || !user.otp.code) {
+      res.status(400).json({ success: false, message: 'No OTP generated for this email.' });
+      return;
+    }
+
+    if (new Date() > new Date(user.otp.expiresAt || 0)) {
+      res.status(400).json({ success: false, message: 'OTP has expired.' });
+      return;
+    }
+
+    if (user.otp.code !== otp.trim()) {
+      res.status(400).json({ success: false, message: 'Invalid 6-digit OTP.' });
+      return;
+    }
+
+    user.isEmailVerified = true;
+    user.otp = undefined;
+    await user.save();
+
+    const token = generateToken(user._id.toString(), user.role);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully!',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        department: user.department,
+        assignedPincodes: user.assignedPincodes,
+      },
+    });
+  } catch (error) {
     res.status(500).json({ success: false, message: (error as Error).message });
   }
 };

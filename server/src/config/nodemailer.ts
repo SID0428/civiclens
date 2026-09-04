@@ -9,7 +9,14 @@ export const transporter = nodemailer.createTransport({
 });
 
 export const sendOTPEmail = async (toEmail: string, otpCode: string, purpose: string = 'Verification'): Promise<boolean> => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || process.env.EMAIL_PASS.includes('xxxx')) {
+  console.log(`[OTP DISPATCHED] OTP for ${toEmail}: ${otpCode} (Purpose: ${purpose})`);
+
+  const isConfigured = process.env.EMAIL_USER &&
+                       process.env.EMAIL_PASS &&
+                       !process.env.EMAIL_PASS.includes('your_') &&
+                       !process.env.EMAIL_PASS.includes('xxxx');
+
+  if (!isConfigured) {
     console.log(`[Google SMTP Dev Mode] OTP for ${toEmail}: ${otpCode} (Purpose: ${purpose})`);
     return true;
   }

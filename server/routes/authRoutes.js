@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   sendEmailOTP,
   sendRegistrationOTP,
+  verifyOTP,
   verifyOTPAndSignup,
   registerWithOTP,
   loginWithPassword,
@@ -16,6 +17,7 @@ const { protect } = require('../middleware/authMiddleware');
 
 // Standard & Legacy OTP routes
 router.post('/send-otp', sendEmailOTP || sendRegistrationOTP);
+router.post('/verify-otp', verifyOTP);
 router.post('/verify-otp-signup', verifyOTPAndSignup || registerWithOTP);
 router.post('/register-with-otp', registerWithOTP || verifyOTPAndSignup);
 

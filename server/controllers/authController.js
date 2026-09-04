@@ -45,6 +45,11 @@ const sendEmailOTP = async (req, res) => {
     user.otp = { code: otpCode, expiresAt, purpose };
     await user.save();
 
+    const isConfigured = process.env.EMAIL_USER &&
+                         process.env.EMAIL_PASS &&
+                         !process.env.EMAIL_PASS.includes('your_') &&
+                         !process.env.EMAIL_PASS.includes('xxxx');
+
     // Dispatch email asynchronously in background so user doesn't wait for SMTP network delay
     sendOTPEmail(email, otpCode, purpose).catch((err) => {
       console.error('[Async Email Error]:', err);
@@ -53,10 +58,56 @@ const sendEmailOTP = async (req, res) => {
     res.status(200).json({
       success: true,
       message: `Verification OTP dispatched to ${email}`,
-      devOtp: (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || process.env.EMAIL_PASS.includes('xxxx')) ? otpCode : undefined,
+      devOtp: (!isConfigured || process.env.NODE_ENV !== 'production') ? otpCode : undefined,
     });
   } catch (error) {
     console.error('Send OTP Error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 2. Verify OTP for Login
+const verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP are required.' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || !user.otp || !user.otp.code) {
+      return res.status(400).json({ success: false, message: 'No OTP generated for this email.' });
+    }
+
+    if (new Date() > new Date(user.otp.expiresAt)) {
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+    }
+
+    if (user.otp.code !== otp.trim()) {
+      return res.status(400).json({ success: false, message: 'Invalid 6-digit OTP.' });
+    }
+
+    user.isEmailVerified = true;
+    user.otp = undefined;
+    await user.save();
+
+    const token = generateToken(user._id, user.role);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully!',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        department: user.department,
+        assignedPincodes: user.assignedPincodes,
+      },
+    });
+  } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -201,6 +252,7 @@ const getMe = async (req, res) => {
 module.exports = {
   sendEmailOTP,
   sendRegistrationOTP: sendEmailOTP,
+  verifyOTP,
   verifyOTPAndSignup,
   registerWithOTP: verifyOTPAndSignup,
   loginWithPassword,
