@@ -58,6 +58,87 @@ export const ReportIssue: React.FC = () => {
   const [aiSuccessBadge, setAiSuccessBadge] = useState<string | null>(null);
   const [isValidCivicIssue, setIsValidCivicIssue] = useState<boolean | null>(null);
 
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    startGpsTracking();
+
+    return () => {
+      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, []);
+
+  const startGpsTracking = () => {
+    setGpsLoading(true);
+    setGpsDenied(false);
+    setErrorMessage('');
+
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+
+    const { watchId } = GeoService.startLiveTracking(
+      (pos: FusedPosition) => {
+        handleNewPosition(pos.lat, pos.lng, pos.accuracy);
+      },
+      (err: GeolocationPositionError) => {
+        console.warn('GPS hardware error:', err);
+        setGpsLoading(false);
+        if (err.code === 1) {
+          setGpsDenied(true);
+          setErrorMessage('Location permission denied. Please allow location access in your browser / Mac settings.');
+        } else if (err.code === 2) {
+          setErrorMessage('GPS position unavailable. Please ensure Wi-Fi or Location Services are enabled on your device.');
+        } else if (err.code === 3) {
+          setErrorMessage('GPS query timed out. Please click "Sync / Refresh GPS" to retry.');
+        }
+      }
+    );
+
+    watchIdRef.current = watchId;
+
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    pollIntervalRef.current = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          handleNewPosition(pos.coords.latitude, pos.coords.longitude, Math.round(pos.coords.accuracy || 5));
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }, 3000);
+  };
+
+  const handleNewPosition = async (lat: number, lng: number, acc: number) => {
+    if (prevLatRef.current !== null && prevLatRef.current !== lat) {
+      setIsLatPulsing(true);
+      setTimeout(() => setIsLatPulsing(false), 500);
+    }
+    if (prevLngRef.current !== null && prevLngRef.current !== lng) {
+      setIsLngPulsing(true);
+      setTimeout(() => setIsLngPulsing(false), 500);
+    }
+
+    prevLatRef.current = lat;
+    prevLngRef.current = lng;
+
+    setLiveLat(lat);
+    setLiveLng(lng);
+    setAccuracy(acc);
+    setGpsLoading(false);
+    setGpsDenied(false);
+    setErrorMessage('');
+    setUpdateCount((prev) => prev + 1);
+
+    const geo = await GeoService.reverseGeocode(lat, lng);
+    if (geo.pincode) setPincode(geo.pincode);
+    if (geo.district) setDistrict(geo.district);
+    if (geo.address) setAddress(geo.address);
+    if (geo.landmark) setLandmark(geo.landmark);
+  };
+
   const handlePhotoCaptured = async (file: File, dataUrl: string, lat: number, lng: number) => {
     setPhotos((prev) => [...prev, { file, dataUrl, lat, lng }]);
     analyzePhotoWithGroq(file, dataUrl);
