@@ -253,19 +253,51 @@ export const loginWithPassword = async (req: Request, res: Response): Promise<vo
 // @route   POST /api/auth/google
 export const googleAuth = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, name, googleId, avatar } = req.body;
+    let { email, name, googleId, avatar, credential } = req.body;
+
+    if (credential) {
+      try {
+        const { OAuth2Client } = require('google-auth-library');
+        const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
+        if (googleClientId && !googleClientId.includes('your_')) {
+          const client = new OAuth2Client(googleClientId);
+          const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: googleClientId,
+          });
+          const payload = ticket.getPayload();
+          if (payload) {
+            email = payload.email || email;
+            name = payload.name || name;
+            googleId = payload.sub || googleId;
+            avatar = payload.picture || avatar;
+          }
+        } else {
+          const decoded: any = jwt.decode(credential);
+          if (decoded) {
+            email = decoded.email || email;
+            name = decoded.name || name;
+            googleId = decoded.sub || googleId;
+            avatar = decoded.picture || avatar;
+          }
+        }
+      } catch (err: any) {
+        console.warn('[Google OAuth Token Verification Warning]:', err.message);
+      }
+    }
 
     if (!email) {
       res.status(400).json({ success: false, message: 'Google account email is required.' });
       return;
     }
 
-    let user = await User.findOne({ email });
+    const cleanEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail });
 
     if (!user) {
       user = await User.create({
-        name: name || email.split('@')[0],
-        email,
+        name: name || cleanEmail.split('@')[0],
+        email: cleanEmail,
         googleId,
         avatar,
         isEmailVerified: true,

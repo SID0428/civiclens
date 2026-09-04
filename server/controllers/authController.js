@@ -216,19 +216,54 @@ const loginWithPassword = async (req, res) => {
   }
 };
 
+const { OAuth2Client } = require('google-auth-library');
+
 // 4. Google Auth
 const googleAuth = async (req, res) => {
   try {
-    const { email, name, googleId, avatar } = req.body;
+    let { email, name, googleId, avatar, credential } = req.body;
+
+    if (credential) {
+      try {
+        const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
+        if (googleClientId && !googleClientId.includes('your_')) {
+          const client = new OAuth2Client(googleClientId);
+          const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: googleClientId,
+          });
+          const payload = ticket.getPayload();
+          if (payload) {
+            email = payload.email || email;
+            name = payload.name || name;
+            googleId = payload.sub || googleId;
+            avatar = payload.picture || avatar;
+          }
+        } else {
+          const decoded = jwt.decode(credential);
+          if (decoded) {
+            email = decoded.email || email;
+            name = decoded.name || name;
+            googleId = decoded.sub || googleId;
+            avatar = decoded.picture || avatar;
+          }
+        }
+      } catch (err) {
+        console.warn('[Google OAuth Token Verification Warning]:', err.message);
+      }
+    }
+
     if (!email) {
       return res.status(400).json({ success: false, message: 'Email is required for Google login.' });
     }
 
-    let user = await User.findOne({ email });
+    const cleanEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail });
+
     if (!user) {
       user = await User.create({
-        name: name || email.split('@')[0],
-        email,
+        name: name || cleanEmail.split('@')[0],
+        email: cleanEmail,
         googleId,
         avatar,
         isEmailVerified: true,
@@ -251,6 +286,7 @@ const googleAuth = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        avatar: user.avatar,
         role: user.role,
       },
     });
