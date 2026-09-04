@@ -61,7 +61,7 @@ export const UserSignup: React.FC = () => {
             <Camera className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-black text-slate-900">Citizen Registration</h2>
-          <p className="text-xs text-slate-500">Sign up using verified Google SMTP Email OTP</p>
+          <p className="text-xs text-slate-500">Create an account to report and track civic grievances</p>
         </div>
 
         {error && (
