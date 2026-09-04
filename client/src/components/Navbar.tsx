@@ -36,30 +36,12 @@ export const Navbar: React.FC = () => {
 
           {user ? (
             <div className="flex items-center space-x-3">
-              {role === 'citizen' && (
-                <Link
-                  to="/dashboard"
-                  className="text-xs font-semibold text-slate-600 hover:text-sky-600 transition"
-                >
-                  My Complaints
-                </Link>
-              )}
-              {role === 'subadmin' && (
-                <Link
-                  to="/admin/dashboard"
-                  className="text-xs font-semibold text-blue-600 hover:underline transition"
-                >
-                  District Triage
-                </Link>
-              )}
-              {role === 'superadmin' && (
-                <Link
-                  to="/superadmin/dashboard"
-                  className="text-xs font-semibold text-sky-700 hover:underline transition"
-                >
-                  Governance Console
-                </Link>
-              )}
+              <Link
+                to={role === 'superadmin' ? '/superadmin/dashboard' : role === 'subadmin' ? '/admin/dashboard' : '/dashboard'}
+                className="text-xs font-semibold text-slate-600 hover:text-sky-600 transition"
+              >
+                {role === 'citizen' ? 'My Complaints' : 'Dashboard'}
+              </Link>
               <button
                 onClick={handleLogout}
                 className="text-xs font-semibold text-slate-500 hover:text-red-600 transition flex items-center gap-1"
