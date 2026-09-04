@@ -27,7 +27,7 @@ router.post('/', protect, authorize('citizen'), upload.array('images', 5), creat
 router.get('/my', protect, authorize('citizen'), getMyComplaints);
 
 // Sub-Admin Routes
-router.get('/subadmin', protect, authorize('subadmin'), getSubAdminComplaints);
+router.get('/subadmin', protect, authorize('subadmin', 'superadmin'), getSubAdminComplaints);
 
 // Super-Admin Routes
 router.get('/superadmin', protect, authorize('superadmin'), getSuperAdminComplaints);

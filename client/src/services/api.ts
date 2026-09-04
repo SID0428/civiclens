@@ -116,8 +116,9 @@ export const API = {
     let targetRole: string | undefined;
     if (endpoint.includes('superadmin') || window.location.pathname.startsWith('/superadmin')) {
       targetRole = 'superadmin';
-    } else if (endpoint.includes('subadmin') || endpoint.startsWith('/admin')) {
-      targetRole = localStorage.getItem('civiclens_superadmin_token') ? 'superadmin' : 'subadmin';
+    } else if (endpoint.includes('subadmin') || endpoint.startsWith('/admin') || window.location.pathname.startsWith('/admin')) {
+      // Always prefer the subadmin token when on the admin dashboard
+      targetRole = localStorage.getItem('civiclens_subadmin_token') ? 'subadmin' : 'superadmin';
     }
 
     const token = API.getToken(targetRole);

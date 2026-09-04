@@ -10,6 +10,7 @@ export const AdminDashboard: React.FC = () => {
   const role = API.getRole('subadmin') || API.getRole('superadmin');
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // Status update modal
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -39,11 +40,13 @@ export const AdminDashboard: React.FC = () => {
 
   const loadComplaints = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const res = await API.request('/complaints/subadmin');
       setComplaints(res.complaints || []);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Failed to load complaints:', err);
+      setLoadError(err.message || 'Failed to load complaints. Please try re-logging in.');
     } finally {
       setLoading(false);
     }
@@ -159,6 +162,16 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Error Banner */}
+      {loadError && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
+          <span className="text-red-600 font-bold text-sm">⚠️ {loadError}</span>
+          <button onClick={loadComplaints} className="ml-auto px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700">
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
