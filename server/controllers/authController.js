@@ -27,6 +27,13 @@ const sendEmailOTP = async (req, res) => {
 
     let user = await User.findOne({ email });
     if (!user) {
+      if (purpose.toLowerCase().includes('login')) {
+        return res.status(404).json({
+          success: false,
+          message: 'No registered account found with this email. Please sign up first.',
+        });
+      }
+
       user = new User({
         name: email.split('@')[0],
         email,
