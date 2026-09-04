@@ -7,6 +7,7 @@ import {
   getSubAdminComplaints,
   getSuperAdminComplaints,
   updateComplaintStatus,
+  analyzeComplaintImage,
 } from '../controllers/complaintController';
 import { protect, authorize } from '../middleware/authMiddleware';
 import upload from '../middleware/uploadMiddleware';
@@ -15,6 +16,9 @@ const router = express.Router();
 
 // Public live feed
 router.get('/public', getPublicComplaints);
+
+// Groq AI Vision Image Analysis Route (Public for seamless pre-submission check)
+router.post('/analyze-image', upload.single('image'), analyzeComplaintImage);
 
 // Public / Guest Submit with Email OTP & Geotagged Photos
 router.post('/submit-with-otp', upload.array('images', 5), submitComplaintWithOTP);

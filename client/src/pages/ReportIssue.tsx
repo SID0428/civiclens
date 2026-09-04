@@ -45,101 +45,64 @@ export const ReportIssue: React.FC = () => {
   const prevLngRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
-  // Photos & Modals
+  // Photos, AI & Modals
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isOtpOpen, setIsOtpOpen] = useState(false);
   const [devOtp, setDevOtp] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
 
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Groq AI Vision States
+  const [analyzingAi, setAnalyzingAi] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [aiSuccessBadge, setAiSuccessBadge] = useState<string | null>(null);
+  const [isValidCivicIssue, setIsValidCivicIssue] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    startGpsTracking();
-
-    return () => {
-      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    };
-  }, []);
-
-  const startGpsTracking = () => {
-    setGpsLoading(true);
-    setGpsDenied(false);
-    setErrorMessage('');
-
-    if (watchIdRef.current) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-
-    const { watchId } = GeoService.startLiveTracking(
-      (pos: FusedPosition) => {
-        handleNewPosition(pos.lat, pos.lng, pos.accuracy);
-      },
-      (err: GeolocationPositionError) => {
-        console.warn('GPS hardware error:', err);
-        setGpsLoading(false);
-        if (err.code === 1) {
-          setGpsDenied(true);
-          setErrorMessage('Location permission denied. Please allow location access in your browser / Mac settings.');
-        } else if (err.code === 2) {
-          setErrorMessage('GPS position unavailable. Please ensure Wi-Fi or Location Services are enabled on your device.');
-        } else if (err.code === 3) {
-          setErrorMessage('GPS query timed out. Please click "Sync / Refresh GPS" to retry.');
-        }
-      }
-    );
-
-    watchIdRef.current = watchId;
-
-    // Forced re-poll every 3 seconds for guaranteed live updates
-    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    pollIntervalRef.current = setInterval(() => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          handleNewPosition(pos.coords.latitude, pos.coords.longitude, Math.round(pos.coords.accuracy || 5));
-        },
-        () => {}, // silently ignore poll errors
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-    }, 3000);
-  };
-
-  const handleNewPosition = async (lat: number, lng: number, acc: number) => {
-    if (prevLatRef.current !== null && prevLatRef.current !== lat) {
-      setIsLatPulsing(true);
-      setTimeout(() => setIsLatPulsing(false), 500);
-    }
-    if (prevLngRef.current !== null && prevLngRef.current !== lng) {
-      setIsLngPulsing(true);
-      setTimeout(() => setIsLngPulsing(false), 500);
-    }
-
-    prevLatRef.current = lat;
-    prevLngRef.current = lng;
-
-    setLiveLat(lat);
-    setLiveLng(lng);
-    setAccuracy(acc);
-    setGpsLoading(false);
-    setGpsDenied(false);
-    setErrorMessage('');
-    setUpdateCount((prev) => prev + 1);
-
-    const geo = await GeoService.reverseGeocode(lat, lng);
-    if (geo.pincode) setPincode(geo.pincode);
-    if (geo.district) setDistrict(geo.district);
-    if (geo.address) setAddress(geo.address);
-    if (geo.landmark) setLandmark(geo.landmark);
-  };
-
-  const handlePhotoCaptured = (file: File, dataUrl: string, lat: number, lng: number) => {
+  const handlePhotoCaptured = async (file: File, dataUrl: string, lat: number, lng: number) => {
     setPhotos((prev) => [...prev, { file, dataUrl, lat, lng }]);
+    analyzePhotoWithGroq(file, dataUrl);
+  };
+
+  const analyzePhotoWithGroq = async (file: File, dataUrl: string) => {
+    setAnalyzingAi(true);
+    setAiError('');
+    setAiSuccessBadge(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('imageBase64', dataUrl);
+
+      const res = await API.request('/complaints/analyze-image', 'POST', formData, true);
+
+      if (res.isValidCivicIssue === false) {
+        setIsValidCivicIssue(false);
+        setAiError(res.rejectionReason || 'Image does not show any civic issue');
+      } else {
+        setIsValidCivicIssue(true);
+        if (res.title) setTitle(res.title);
+        if (res.category) setCategory(res.category);
+        if (res.priority) setPriority(res.priority);
+        if (res.description && (!description || description.length < 10)) {
+          setDescription(res.description);
+        }
+        setAiSuccessBadge(`✨ Auto-detected by Groq AI Vision: ${res.category} (Severity: ${res.priority})`);
+      }
+    } catch (err: any) {
+      console.warn('Groq AI Vision Error:', err);
+    } finally {
+      setAnalyzingAi(false);
+    }
   };
 
   const handleRemovePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    const updated = photos.filter((_, i) => i !== index);
+    setPhotos(updated);
+    if (updated.length === 0) {
+      setIsValidCivicIssue(null);
+      setAiError('');
+      setAiSuccessBadge(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -153,6 +116,11 @@ export const ReportIssue: React.FC = () => {
 
     if (photos.length === 0) {
       alert('Please capture at least one live camera photo.');
+      return;
+    }
+
+    if (isValidCivicIssue === false) {
+      alert('Image does not show any civic issue. Please capture or upload a clear photo of a public civic problem to submit.');
       return;
     }
 
@@ -502,6 +470,33 @@ export const ReportIssue: React.FC = () => {
             )}
           </div>
 
+          {/* Groq AI Vision Analysis Status Card */}
+          {analyzingAi && (
+            <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl flex items-center gap-3 text-sky-800 text-xs font-bold animate-pulse">
+              <Loader2 className="w-5 h-5 animate-spin text-sky-600 flex-shrink-0" />
+              <span>🤖 Groq AI Vision is analyzing photo for category, title & severity...</span>
+            </div>
+          )}
+
+          {isValidCivicIssue === false && !analyzingAi && (
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-rose-700 text-xs font-medium shadow-sm">
+              <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-extrabold text-sm text-rose-900 mb-0.5">Image does not show any civic issue</p>
+                <p className="text-slate-600 leading-relaxed">
+                  {aiError || 'Groq AI Vision system detected that this photo does not depict a public civic infrastructure problem. Submission is disabled until a photo of a valid civic issue is captured.'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {aiSuccessBadge && isValidCivicIssue === true && !analyzingAi && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2.5 text-emerald-800 text-xs font-bold shadow-2xs">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>{aiSuccessBadge}</span>
+            </div>
+          )}
+
           {/* Issue Details */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Step 3: Issue Title *</label>
@@ -562,11 +557,19 @@ export const ReportIssue: React.FC = () => {
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full py-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50"
+            disabled={submitting || analyzingAi || isValidCivicIssue === false}
+            className="w-full py-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" />
-            <span>{submitting ? 'Submitting Grievance...' : 'Submit Live Geotagged Grievance'}</span>
+            <span>
+              {submitting
+                ? 'Submitting Grievance...'
+                : analyzingAi
+                ? 'Groq AI Analyzing Photo...'
+                : isValidCivicIssue === false
+                ? 'Submission Disabled (Non-Civic Photo)'
+                : 'Submit Live Geotagged Grievance'}
+            </span>
           </button>
         </form>
       </div>
