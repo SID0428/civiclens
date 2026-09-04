@@ -67,15 +67,13 @@ const sendEmailOTP = async (req, res) => {
     user.otp = { code: otpCode, expiresAt, purpose };
     await user.save();
 
-    // Dispatch email asynchronously in background so HTTP response returns instantly (<150ms)
-    sendOTPEmail(email, otpCode, purpose).catch((err) => {
-      console.error('[Async Email Dispatch Error]:', err);
-    });
+    const mailResult = await sendOTPEmail(email, otpCode, purpose);
+    const showDevOtp = mailResult?.devMode && process.env.NODE_ENV !== 'production';
 
     res.status(200).json({
       success: true,
-      message: `Verification OTP dispatched to ${email}`,
-      devOtp: otpCode,
+      message: `Verification OTP sent to ${email}. Please check your email inbox and spam folder.`,
+      devOtp: showDevOtp ? otpCode : undefined,
     });
   } catch (error) {
     console.error('Send OTP Error:', error);

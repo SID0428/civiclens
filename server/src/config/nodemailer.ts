@@ -34,7 +34,7 @@ export const sendOTPEmail = async (
   toEmail: string,
   otpCode: string,
   purpose: string = 'Verification'
-): Promise<{ success: boolean; devMode?: boolean; otpCode?: string; messageId?: string; error?: string }> => {
+): Promise<{ success: boolean; devMode?: boolean; otpCode?: string; messageId?: string }> => {
   const emailUser = (process.env.EMAIL_USER || '').trim();
   const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
 
@@ -47,6 +47,9 @@ export const sendOTPEmail = async (
                        !emailPass.includes('xxxx');
 
   if (!isConfigured) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Email credentials (EMAIL_USER & EMAIL_PASS) are not configured on the production server.');
+    }
     console.log(`[Google SMTP Dev Mode] OTP for ${toEmail}: ${otpCode} (Purpose: ${purpose})`);
     return { success: true, devMode: true, otpCode };
   }
@@ -83,6 +86,6 @@ export const sendOTPEmail = async (
     return { success: true, messageId: info.messageId };
   } catch (error: any) {
     console.error(`[Google SMTP Error] Failed to send email to ${toEmail}: ${error?.message || error}`);
-    return { success: true, devMode: true, otpCode, error: error?.message || String(error) };
+    throw new Error(`Google SMTP Error: ${error?.message || error}`);
   }
 };

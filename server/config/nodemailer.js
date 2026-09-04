@@ -32,7 +32,6 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
   const emailUser = (process.env.EMAIL_USER || '').trim();
   const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
 
-  // Always log OTP to server console so developers/testers can easily inspect generated codes
   console.log(`[OTP DISPATCHED] OTP for ${toEmail}: ${otpCode} (Purpose: ${purpose})`);
 
   const isConfigured = emailUser &&
@@ -42,6 +41,9 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
                        !emailPass.includes('xxxx');
 
   if (!isConfigured) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Email credentials (EMAIL_USER & EMAIL_PASS) are not configured on the production server.');
+    }
     console.log(`[DEV MODE - Google SMTP Simulation] OTP for ${toEmail}: ${otpCode}`);
     return { success: true, devMode: true, otpCode };
   }
@@ -78,8 +80,7 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`[Google SMTP Error] Failed to send email to ${toEmail}: ${error.message}`);
-    // Return dev simulated OTP so frontend doesn't crash if Google credentials fail or block
-    return { success: true, devMode: true, otpCode, error: error.message };
+    throw new Error(`Google SMTP Error: ${error.message}`);
   }
 };
 

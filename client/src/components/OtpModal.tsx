@@ -53,7 +53,7 @@ export const OtpModal: React.FC<OtpModalProps> = ({
           </div>
           <h3 className="text-lg font-bold text-slate-900">Verify Email & Submit Issue</h3>
           <p className="text-xs text-slate-500">
-            A 6-digit verification code was sent to <strong className="text-slate-800">{email}</strong>.
+            A 6-digit verification code was sent to <strong className="text-slate-800">{email}</strong>. Please check your inbox & spam folder.
           </p>
         </div>
 
