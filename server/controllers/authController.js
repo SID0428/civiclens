@@ -22,14 +22,32 @@ const sendEmailOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
     }
 
-    const isLogin = purpose.toLowerCase().includes('login');
+    const purposeLower = purpose.toLowerCase();
+    const isLogin = purposeLower.includes('login');
+    const isSignup = purposeLower.includes('signup') || purposeLower.includes('registration');
+
     let user = await User.findOne({ email });
 
     if (isLogin) {
       if (!user || !user.isEmailVerified) {
         return res.status(404).json({
           success: false,
-          message: 'No verified citizen account found with this email. Please sign up first.',
+          message: 'No registered account found with this email. Please sign up first.',
+        });
+      }
+    } else if (isSignup) {
+      if (user && user.isEmailVerified && user.password) {
+        return res.status(400).json({
+          success: false,
+          message: 'An account with this email address already exists. Please log in instead.',
+        });
+      }
+      if (!user) {
+        user = new User({
+          name: email.split('@')[0],
+          email,
+          role: 'citizen',
+          isEmailVerified: false,
         });
       }
     } else {
@@ -49,8 +67,10 @@ const sendEmailOTP = async (req, res) => {
     user.otp = { code: otpCode, expiresAt, purpose };
     await user.save();
 
-    // Await email dispatch so SMTP transmission completes cleanly before response closes
-    const emailResult = await sendOTPEmail(email, otpCode, purpose);
+    // Dispatch email asynchronously in background so HTTP response returns instantly (<150ms)
+    sendOTPEmail(email, otpCode, purpose).catch((err) => {
+      console.error('[Async Email Dispatch Error]:', err);
+    });
 
     const emailUser = (process.env.EMAIL_USER || '').trim();
     const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
@@ -63,11 +83,11 @@ const sendEmailOTP = async (req, res) => {
     res.status(200).json({
       success: true,
       message: `Verification OTP dispatched to ${email}`,
-      devOtp: (!isConfigured || emailResult.devMode || process.env.NODE_ENV !== 'production') ? otpCode : undefined,
+      devOtp: (!isConfigured || process.env.NODE_ENV !== 'production') ? otpCode : undefined,
     });
   } catch (error) {
     console.error('Send OTP Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message || 'Failed to dispatch verification OTP' });
   }
 };
 
