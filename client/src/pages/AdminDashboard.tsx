@@ -18,11 +18,22 @@ export const AdminDashboard: React.FC = () => {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [updating, setUpdating] = useState(false);
 
+  const [currentUser, setCurrentUser] = useState<User | null>(user);
+
   useEffect(() => {
     if (!user || (role !== 'subadmin' && role !== 'superadmin')) {
       navigate('/admin/login');
       return;
     }
+    API.request('/auth/me')
+      .then((res) => {
+        if (res.user) {
+          setCurrentUser(res.user);
+          API.setAuth(API.getToken('subadmin') || '', res.user, 'subadmin');
+        }
+      })
+      .catch(console.error);
+
     loadComplaints();
   }, []);
 
@@ -100,7 +111,7 @@ export const AdminDashboard: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
-              {role === 'superadmin' ? (user?.name || 'State Central Admin') : (user?.name === 'State Central Admin' ? 'District Admin' : (user?.name || 'District Admin'))}
+              {role === 'superadmin' ? (currentUser?.name || 'State Central Admin') : (currentUser?.name === 'State Central Admin' ? 'District Admin' : (currentUser?.name || 'District Admin'))}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-bold text-[11px]">
               {role === 'superadmin' ? 'Super Admin' : 'District Admin'}
@@ -110,17 +121,17 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 pt-0.5">
             <div className="flex items-center gap-1.5">
               <Building2 className="w-4 h-4 text-blue-600" />
-              <span>District: <strong className="text-slate-900 font-bold">{user?.assignedDistrict || 'Central District'}</strong></span>
+              <span>District: <strong className="text-slate-900 font-bold">{currentUser?.assignedDistrict || 'Central District'}</strong></span>
             </div>
             <span>&bull;</span>
             <div>
-              <span>Department: <strong className="text-slate-900 font-bold">{user?.department || 'General Administration'}</strong></span>
+              <span>Department: <strong className="text-slate-900 font-bold">{currentUser?.department || 'General Administration'}</strong></span>
             </div>
-            {user?.officialId && (
+            {currentUser?.officialId && (
               <>
                 <span>&bull;</span>
                 <div>
-                  <span>Official ID: <strong className="text-slate-900 font-mono font-bold">{user.officialId}</strong></span>
+                  <span>Official ID: <strong className="text-slate-900 font-mono font-bold">{currentUser.officialId}</strong></span>
                 </div>
               </>
             )}
@@ -134,8 +145,8 @@ export const AdminDashboard: React.FC = () => {
             <MapPin className="w-3.5 h-3.5 text-blue-600" />
           </div>
           <div className="flex flex-wrap gap-1.5 pt-0.5">
-            {user?.assignedPincodes && user.assignedPincodes.length > 0 ? (
-              user.assignedPincodes.map((p) => (
+            {currentUser?.assignedPincodes && currentUser.assignedPincodes.length > 0 ? (
+              currentUser.assignedPincodes.map((p) => (
                 <span key={p} className="px-2.5 py-1 bg-white border border-blue-200 rounded-lg text-xs font-mono font-bold text-blue-700 shadow-2xs">
                   PIN {p}
                 </span>
