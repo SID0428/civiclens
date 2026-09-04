@@ -17,7 +17,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
-  const [department, setDepartment] = useState('Public Works Department (PWD)');
+  const [department, setDepartment] = useState('All Departments');
   const [assignedDistrict, setAssignedDistrict] = useState('');
   const [assignedPincodes, setAssignedPincodes] = useState('');
   const [creating, setCreating] = useState(false);
@@ -220,10 +220,13 @@ export const SuperAdminDashboard: React.FC = () => {
                     onChange={(e) => setDepartment(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
                   >
+                    <option value="All Departments">All Departments</option>
                     <option value="Roads & Potholes">Roads & Potholes (PWD)</option>
                     <option value="Garbage & Sanitation">Garbage & Sanitation</option>
                     <option value="Water Supply & Sewage">Water Supply & Sewage</option>
                     <option value="Electricity & Streetlights">Electricity & Streetlights</option>
+                    <option value="Public Infrastructure">Public Infrastructure</option>
+                    <option value="Encroachment & Traffic">Encroachment & Traffic</option>
                     <option value="General Administration">General Administration</option>
                   </select>
                 </div>
