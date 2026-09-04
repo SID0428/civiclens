@@ -16,7 +16,7 @@ interface PhotoItem {
 
 export const ReportIssue: React.FC = () => {
   const navigate = useNavigate();
-  const [user] = useState(API.getUser());
+  const [user] = useState(API.getUser('citizen'));
 
   // Form states
   const [name, setName] = useState(user?.name || '');

@@ -6,7 +6,8 @@ import { User } from '../types';
 
 export const SuperAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const user = API.getUser();
+  const user = API.getUser('superadmin');
+  const role = API.getRole('superadmin');
   const [subAdmins, setSubAdmins] = useState<User[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    if (!user || API.getRole() !== 'superadmin') {
+    if (!user || role !== 'superadmin') {
       navigate('/superadmin/login');
       return;
     }

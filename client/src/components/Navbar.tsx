@@ -1,19 +1,24 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Camera, LogOut, User as UserIcon } from 'lucide-react';
 import { API } from '../services/api';
 
 export const Navbar: React.FC = () => {
   const navigate = useNavigate();
-  const user = API.getUser();
-  const role = API.getRole();
+  const location = useLocation();
+
+  const isSuperAdminPath = location.pathname.startsWith('/superadmin');
+  const isAdminPath = location.pathname.startsWith('/admin');
+
+  const activeRole = isSuperAdminPath ? 'superadmin' : isAdminPath ? 'subadmin' : 'citizen';
+  const user = API.getUser(activeRole);
+  const role = API.getRole(activeRole);
 
   const handleLogout = () => {
-    const currentRole = role;
-    API.logout();
-    if (currentRole === 'superadmin') {
+    API.logout(activeRole);
+    if (activeRole === 'superadmin') {
       navigate('/superadmin/login');
-    } else if (currentRole === 'subadmin') {
+    } else if (activeRole === 'subadmin') {
       navigate('/admin/login');
     } else {
       navigate('/login');
@@ -33,7 +38,7 @@ export const Navbar: React.FC = () => {
         </Link>
 
         <div className="flex items-center space-x-4">
-          {role !== 'subadmin' && role !== 'superadmin' && (
+          {!isAdminPath && !isSuperAdminPath && (
             <Link
               to="/report"
               className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-sm hover:shadow transition flex items-center gap-1.5"
@@ -46,10 +51,10 @@ export const Navbar: React.FC = () => {
           {user ? (
             <div className="flex items-center space-x-3">
               <Link
-                to={role === 'superadmin' ? '/superadmin/dashboard' : role === 'subadmin' ? '/admin/dashboard' : '/dashboard'}
+                to={activeRole === 'superadmin' ? '/superadmin/dashboard' : activeRole === 'subadmin' ? '/admin/dashboard' : '/dashboard'}
                 className="text-xs font-semibold text-slate-600 hover:text-sky-600 transition"
               >
-                {role === 'citizen' ? 'My Complaints' : 'Dashboard'}
+                {activeRole === 'citizen' ? 'My Complaints' : 'Dashboard'}
               </Link>
               <button
                 onClick={handleLogout}
@@ -61,13 +66,15 @@ export const Navbar: React.FC = () => {
             </div>
           ) : (
             <div className="flex items-center space-x-2">
-              <Link
-                to="/login"
-                className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-sky-600 transition flex items-center gap-1"
-              >
-                <UserIcon className="w-3.5 h-3.5" />
-                <span>Citizen Sign In</span>
-              </Link>
+              {!isAdminPath && !isSuperAdminPath && (
+                <Link
+                  to="/login"
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-sky-600 transition flex items-center gap-1"
+                >
+                  <UserIcon className="w-3.5 h-3.5" />
+                  <span>Citizen Sign In</span>
+                </Link>
+              )}
             </div>
           )}
         </div>

@@ -6,12 +6,12 @@ import { Complaint } from '../types';
 
 export const UserDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const user = API.getUser();
+  const user = API.getUser('citizen');
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || API.getRole() !== 'citizen') {
+    if (!user || API.getRole('citizen') !== 'citizen') {
       navigate('/login');
       return;
     }

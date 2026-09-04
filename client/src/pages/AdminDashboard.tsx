@@ -6,7 +6,8 @@ import { Complaint } from '../types';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const user = API.getUser();
+  const user = API.getUser('subadmin') || API.getUser('superadmin');
+  const role = API.getRole('subadmin') || API.getRole('superadmin');
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +19,7 @@ export const AdminDashboard: React.FC = () => {
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    if (!user || (API.getRole() !== 'subadmin' && API.getRole() !== 'superadmin')) {
+    if (!user || (role !== 'subadmin' && role !== 'superadmin')) {
       navigate('/admin/login');
       return;
     }
