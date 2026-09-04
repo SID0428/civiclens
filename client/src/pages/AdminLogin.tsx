@@ -40,7 +40,7 @@ export const AdminLogin: React.FC = () => {
             <Shield className="w-3 h-3 text-blue-600" />
             <span>District Officer Portal</span>
           </div>
-          <h2 className="text-2xl font-black text-slate-900">Sub-Admin Login</h2>
+          <h2 className="text-2xl font-black text-slate-900">District Admin Login</h2>
           <p className="text-xs text-slate-500">Log in to triage grievances in your assigned PIN codes</p>
         </div>
 

@@ -91,30 +91,59 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       {/* Officer Scope Card */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold mb-2">
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 shadow-2xs">
             <Shield className="w-4 h-4 text-blue-600" />
-            <span>Assigned District Officer Console</span>
+            <span>{role === 'superadmin' ? 'State Governance Super Admin' : 'District Admin Console'}</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900">{user?.name}</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Department: <strong className="text-slate-800">{user?.department || 'General Administration'}</strong> &bull; District: <strong className="text-slate-800">{user?.assignedDistrict || 'Designated'}</strong>
-          </p>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+              {role === 'superadmin' ? (user?.name || 'State Central Admin') : (user?.name === 'State Central Admin' ? 'District Admin' : (user?.name || 'District Admin'))}
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-bold text-[11px]">
+              {role === 'superadmin' ? 'Super Admin' : 'District Admin'}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 pt-0.5">
+            <div className="flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-blue-600" />
+              <span>District: <strong className="text-slate-900 font-bold">{user?.assignedDistrict || 'Central District'}</strong></span>
+            </div>
+            <span>&bull;</span>
+            <div>
+              <span>Department: <strong className="text-slate-900 font-bold">{user?.department || 'General Administration'}</strong></span>
+            </div>
+            {user?.officialId && (
+              <>
+                <span>&bull;</span>
+                <div>
+                  <span>Official ID: <strong className="text-slate-900 font-mono font-bold">{user.officialId}</strong></span>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Assigned Pincodes */}
-        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Your Covered Pincodes:</span>
-          <div className="flex flex-wrap gap-1.5 pt-1">
+        {/* Assigned Pincodes Badge Box */}
+        <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-2 md:min-w-[260px]">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Assigned Pincodes:</span>
+            <MapPin className="w-3.5 h-3.5 text-blue-600" />
+          </div>
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
             {user?.assignedPincodes && user.assignedPincodes.length > 0 ? (
               user.assignedPincodes.map((p) => (
-                <span key={p} className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold text-blue-700">
+                <span key={p} className="px-2.5 py-1 bg-white border border-blue-200 rounded-lg text-xs font-mono font-bold text-blue-700 shadow-2xs">
                   PIN {p}
                 </span>
               ))
             ) : (
-              <span className="text-xs text-amber-600 font-semibold">Broad Jurisdiction</span>
+              <span className="text-xs font-bold text-blue-700 bg-blue-100/60 px-3 py-1 rounded-lg">
+                Statewide / All Pincodes
+              </span>
             )}
           </div>
         </div>
