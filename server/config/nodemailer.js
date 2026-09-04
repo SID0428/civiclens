@@ -5,23 +5,18 @@ let cachedTransporter = null;
 const getTransporter = () => {
   if (cachedTransporter) return cachedTransporter;
 
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  const emailUser = (process.env.EMAIL_USER || '').trim();
+  const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
+
+  if (!emailUser || !emailPass) {
     console.warn('[Google SMTP] EMAIL_USER and EMAIL_PASS are not configured. Email OTPs will be logged to console in dev mode.');
   }
 
   cachedTransporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: false, // true for 465, false for other ports
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 100,
-    connectionTimeout: 4000, // 4s timeout
-    greetingTimeout: 4000,
-    socketTimeout: 4000,
+    service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: emailUser,
+      pass: emailPass,
     },
   });
 
@@ -29,13 +24,27 @@ const getTransporter = () => {
 };
 
 const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
-  const transporter = getTransporter();
+  const emailUser = (process.env.EMAIL_USER || '').trim();
+  const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
 
   // Always log OTP to server console so developers/testers can easily inspect generated codes
   console.log(`[OTP DISPATCHED] OTP for ${toEmail}: ${otpCode} (Purpose: ${purpose})`);
 
+  const isConfigured = emailUser &&
+                       emailPass &&
+                       !emailUser.includes('your_') &&
+                       !emailPass.includes('your_') &&
+                       !emailPass.includes('xxxx');
+
+  if (!isConfigured) {
+    console.log(`[DEV MODE - Google SMTP Simulation] OTP for ${toEmail}: ${otpCode}`);
+    return { success: true, devMode: true, otpCode };
+  }
+
+  const transporter = getTransporter();
+
   const mailOptions = {
-    from: `"CivicLens Portal" <${process.env.EMAIL_USER || 'noreply@civiclens.gov.in'}>`,
+    from: `"CivicLens Portal" <${emailUser}>`,
     to: toEmail,
     subject: `[CivicLens] Your One-Time Password (OTP) for ${purpose}`,
     html: `
@@ -58,23 +67,13 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
     `,
   };
 
-  const isConfigured = process.env.EMAIL_USER &&
-                       process.env.EMAIL_PASS &&
-                       !process.env.EMAIL_PASS.includes('your_') &&
-                       !process.env.EMAIL_PASS.includes('xxxx');
-
   try {
-    if (isConfigured) {
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`[Google SMTP] OTP email sent to ${toEmail}. MessageId: ${info.messageId}`);
-      return { success: true, messageId: info.messageId };
-    } else {
-      console.log(`[DEV MODE - Google SMTP Simulation] OTP for ${toEmail}: ${otpCode}`);
-      return { success: true, devMode: true, otpCode };
-    }
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[Google SMTP SUCCESS] OTP email sent to ${toEmail}. MessageId: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error(`[Google SMTP Error] Failed to send email: ${error.message}`);
-    // Return dev simulated OTP so frontend doesn't crash during demo if credentials fail
+    console.error(`[Google SMTP Error] Failed to send email to ${toEmail}: ${error.message}`);
+    // Return dev simulated OTP so frontend doesn't crash if Google credentials fail or block
     return { success: true, devMode: true, otpCode, error: error.message };
   }
 };

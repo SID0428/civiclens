@@ -27,19 +27,30 @@ export const sendEmailOTP = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const otpCode = generate6DigitOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
+    const isLogin = purpose.toLowerCase().includes('login');
     let user = await User.findOne({ email });
 
-    if (!user) {
-      user = new User({
-        name: email.split('@')[0],
-        email,
-        role: 'citizen',
-        isEmailVerified: false,
-      });
+    if (isLogin) {
+      if (!user || !user.isEmailVerified) {
+        res.status(404).json({
+          success: false,
+          message: 'No verified citizen account found with this email. Please sign up first.',
+        });
+        return;
+      }
+    } else {
+      if (!user) {
+        user = new User({
+          name: email.split('@')[0],
+          email,
+          role: 'citizen',
+          isEmailVerified: false,
+        });
+      }
     }
+
+    const otpCode = generate6DigitOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     user.otp = {
       code: otpCode,
@@ -49,17 +60,20 @@ export const sendEmailOTP = async (req: Request, res: Response): Promise<void> =
 
     await user.save();
 
-    const isConfigured = process.env.EMAIL_USER &&
-                         process.env.EMAIL_PASS &&
-                         !process.env.EMAIL_PASS.includes('your_') &&
-                         !process.env.EMAIL_PASS.includes('xxxx');
+    const emailUser = (process.env.EMAIL_USER || '').trim();
+    const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
+    const isConfigured = emailUser &&
+                         emailPass &&
+                         !emailUser.includes('your_') &&
+                         !emailPass.includes('your_') &&
+                         !emailPass.includes('xxxx');
 
-    await sendOTPEmail(email, otpCode, purpose);
+    const sent = await sendOTPEmail(email, otpCode, purpose);
 
     res.status(200).json({
       success: true,
       message: `Verification OTP dispatched to ${email}`,
-      devOtp: (!isConfigured || process.env.NODE_ENV !== 'production') ? otpCode : undefined,
+      devOtp: (!isConfigured || !sent || process.env.NODE_ENV !== 'production') ? otpCode : undefined,
     });
   } catch (error) {
     console.error('Send OTP Error:', error);

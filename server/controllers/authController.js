@@ -22,43 +22,48 @@ const sendEmailOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
     }
 
-    const otpCode = generate6DigitOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
+    const isLogin = purpose.toLowerCase().includes('login');
     let user = await User.findOne({ email });
-    if (!user) {
-      if (purpose.toLowerCase().includes('login')) {
+
+    if (isLogin) {
+      if (!user || !user.isEmailVerified) {
         return res.status(404).json({
           success: false,
-          message: 'No registered account found with this email. Please sign up first.',
+          message: 'No verified citizen account found with this email. Please sign up first.',
         });
       }
-
-      user = new User({
-        name: email.split('@')[0],
-        email,
-        role: 'citizen',
-        isEmailVerified: false,
-      });
+    } else {
+      if (!user) {
+        user = new User({
+          name: email.split('@')[0],
+          email,
+          role: 'citizen',
+          isEmailVerified: false,
+        });
+      }
     }
+
+    const otpCode = generate6DigitOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     user.otp = { code: otpCode, expiresAt, purpose };
     await user.save();
 
-    const isConfigured = process.env.EMAIL_USER &&
-                         process.env.EMAIL_PASS &&
-                         !process.env.EMAIL_PASS.includes('your_') &&
-                         !process.env.EMAIL_PASS.includes('xxxx');
+    // Await email dispatch so SMTP transmission completes cleanly before response closes
+    const emailResult = await sendOTPEmail(email, otpCode, purpose);
 
-    // Dispatch email asynchronously in background so user doesn't wait for SMTP network delay
-    sendOTPEmail(email, otpCode, purpose).catch((err) => {
-      console.error('[Async Email Error]:', err);
-    });
+    const emailUser = (process.env.EMAIL_USER || '').trim();
+    const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
+    const isConfigured = emailUser &&
+                         emailPass &&
+                         !emailUser.includes('your_') &&
+                         !emailPass.includes('your_') &&
+                         !emailPass.includes('xxxx');
 
     res.status(200).json({
       success: true,
       message: `Verification OTP dispatched to ${email}`,
-      devOtp: (!isConfigured || process.env.NODE_ENV !== 'production') ? otpCode : undefined,
+      devOtp: (!isConfigured || emailResult.devMode || process.env.NODE_ENV !== 'production') ? otpCode : undefined,
     });
   } catch (error) {
     console.error('Send OTP Error:', error);
