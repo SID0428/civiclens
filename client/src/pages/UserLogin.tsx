@@ -87,6 +87,18 @@ export const UserLogin: React.FC = () => {
           client_id: clientId,
           callback: handleGoogleResponse,
         });
+
+        // Also render official Google Button if container exists
+        const btnContainer = document.getElementById('googleSignInBtn');
+        if (btnContainer) {
+          (window as any).google.accounts.id.renderButton(btnContainer, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'continue_with',
+            shape: 'pill',
+          });
+        }
       }
     };
     document.body.appendChild(script);
@@ -110,13 +122,56 @@ export const UserLogin: React.FC = () => {
   };
 
   const handleDemoGoogleLogin = async () => {
-    if ((window as any).google?.accounts?.id) {
-      (window as any).google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          triggerFallbackGoogleLogin();
-        }
-      });
-    } else {
+    setLoading(true);
+    setError('');
+
+    try {
+      if ((window as any).google?.accounts?.oauth2) {
+        const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '1088496924844-civiclens.apps.googleusercontent.com';
+        const client = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              try {
+                const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+                });
+                const profile = await userInfoRes.json();
+
+                if (profile && profile.email) {
+                  const res = await API.request('/auth/google', 'POST', {
+                    email: profile.email,
+                    name: profile.name || profile.given_name || profile.email.split('@')[0],
+                    googleId: profile.sub,
+                    avatar: profile.picture,
+                  });
+                  API.setAuth(res.token, res.user, 'citizen');
+                  navigate('/dashboard');
+                  return;
+                }
+              } catch (err: any) {
+                console.error('Error fetching Google profile:', err);
+              }
+            }
+            setLoading(false);
+          },
+          error_callback: (err: any) => {
+            console.warn('Google Popup Error:', err);
+            setLoading(false);
+          },
+        });
+        client.requestAccessToken({ prompt: 'select_account' });
+      } else if ((window as any).google?.accounts?.id) {
+        (window as any).google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            triggerFallbackGoogleLogin();
+          }
+        });
+      } else {
+        triggerFallbackGoogleLogin();
+      }
+    } catch (err) {
       triggerFallbackGoogleLogin();
     }
   };
