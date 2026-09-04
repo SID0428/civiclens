@@ -39,6 +39,27 @@ const buildDistrictRegex = (districtStr) => {
   return new RegExp(escaped, 'i');
 };
 
+const fetchReverseGeocode = async (lat, lng) => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`,
+      { headers: { 'User-Agent': 'CivicLens-App/1.0' } }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      const addr = data.address || {};
+      const pincode = addr.postcode ? addr.postcode.replace(/\D/g, '').slice(0, 6) : '';
+      const district = addr.state_district || addr.county || addr.city || addr.suburb || addr.town || '';
+      const state = addr.state || '';
+      const formattedAddress = data.display_name || '';
+      return { pincode, district, state, address: formattedAddress };
+    }
+  } catch (error) {
+    console.warn('[Server ReverseGeocode Warning]:', error.message);
+  }
+  return null;
+};
+
 const createComplaintRecord = async ({
   title,
   description,
@@ -53,7 +74,11 @@ const createComplaintRecord = async ({
   priority,
   citizenUser,
 }) => {
-  const cleanPincode = (pincode || '').toString().trim();
+  let cleanPincode = (pincode || '').toString().trim();
+  let cleanDistrict = (district || '').toString().trim();
+  let finalAddress = (address || '').toString().trim();
+  let finalState = (state || '').toString().trim();
+
   const latNum = parseFloat(latitude.toString());
   const lngNum = parseFloat(longitude.toString());
 
@@ -61,9 +86,18 @@ const createComplaintRecord = async ({
     throw new Error('Strict GPS Coordinates are mandatory for grievance lodgement.');
   }
 
-  const primaryImageUrl = images && images.length > 0 ? images[0].url : '';
+  // Fallback server-side reverse geocoding if location metadata is missing
+  if (!cleanDistrict || !cleanPincode || !finalAddress || finalAddress === 'Geotagged location') {
+    const geo = await fetchReverseGeocode(latNum, lngNum);
+    if (geo) {
+      if (!cleanDistrict && geo.district) cleanDistrict = geo.district;
+      if (!cleanPincode && geo.pincode) cleanPincode = geo.pincode;
+      if ((!finalAddress || finalAddress === 'Geotagged location') && geo.address) finalAddress = geo.address;
+      if (!finalState && geo.state) finalState = geo.state;
+    }
+  }
 
-  const cleanDistrict = (district || '').toString().trim();
+  const primaryImageUrl = images && images.length > 0 ? images[0].url : '';
   const distRegex = buildDistrictRegex(cleanDistrict);
 
   // 1. Try District + Category match (Case-Insensitive small/upper case)
@@ -72,7 +106,7 @@ const createComplaintRecord = async ({
     assignedAdmin = await User.findOne({
       role: 'subadmin',
       assignedDistrict: distRegex,
-      $or: [{ department: category }, { department: 'All Departments' }, { department: '' }, { department: { $exists: false } }],
+      $or: [{ department: category }, { department: 'All Departments' }, { department: 'General Civic Administration' }, { department: '' }, { department: { $exists: false } }],
     });
   }
 
@@ -104,10 +138,10 @@ const createComplaintRecord = async ({
       type: 'Point',
       coordinates: [lngNum, latNum],
     },
-    address: address || 'Geotagged location',
+    address: finalAddress || 'Geotagged location',
     pincode: cleanPincode,
     district: cleanDistrict,
-    state: state || '',
+    state: finalState || '',
     priority: priority || 'Medium',
     citizen: citizenUser._id,
     assignedSubAdmin: assignedAdmin ? assignedAdmin._id : null,
@@ -344,15 +378,26 @@ const getSubAdminComplaints = async (req, res) => {
 
     let query = {};
 
-    if (!district || district === 'All' || district === 'State Jurisdiction' || district === 'All Districts' || district === 'Central District') {
+    const isStatewide =
+      !district ||
+      subAdmin.role === 'superadmin' ||
+      ['all', 'state jurisdiction', 'all districts', 'central district', 'statewide', 'general', 'state'].includes(district.toLowerCase());
+
+    if (isStatewide) {
       query = {}; // Super-Admin / All Jurisdiction access
     } else {
       const distRegex = buildDistrictRegex(district);
       const cleanRegex = buildDistrictRegex(cleanDist);
 
       const districtOrConditions = [];
-      if (distRegex) districtOrConditions.push({ district: distRegex });
-      if (cleanRegex && cleanRegex.source !== distRegex?.source) districtOrConditions.push({ district: cleanRegex });
+      if (distRegex) {
+        districtOrConditions.push({ district: distRegex });
+        districtOrConditions.push({ address: distRegex });
+      }
+      if (cleanRegex && cleanRegex.source !== distRegex?.source) {
+        districtOrConditions.push({ district: cleanRegex });
+        districtOrConditions.push({ address: cleanRegex });
+      }
 
       query = {
         $or: [
@@ -361,6 +406,22 @@ const getSubAdminComplaints = async (req, res) => {
           ...(pincodes.length > 0 ? [{ pincode: { $in: pincodes } }] : []),
         ],
       };
+
+      // Auto-assign any unassigned matching complaints to this subadmin
+      try {
+        await Complaint.updateMany(
+          {
+            assignedSubAdmin: null,
+            $or: [
+              ...districtOrConditions,
+              ...(pincodes.length > 0 ? [{ pincode: { $in: pincodes } }] : []),
+            ],
+          },
+          { $set: { assignedSubAdmin: subAdmin._id } }
+        );
+      } catch (e) {
+        // non-blocking auto-assignment
+      }
     }
 
     const complaints = await Complaint.find(query)
