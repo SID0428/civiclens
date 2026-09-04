@@ -162,11 +162,20 @@ exports.getAnalytics = async (req, res) => {
 // @access  Private (Super-Admin)
 exports.updateSubAdmin = async (req, res) => {
   try {
-    const { name, phone, department, assignedDistrict, assignedPincodes, password } = req.body;
+    const { name, email, phone, department, assignedDistrict, assignedPincodes, password } = req.body;
 
     const subAdmin = await User.findById(req.params.id);
     if (!subAdmin || subAdmin.role !== 'subadmin') {
       return res.status(404).json({ success: false, message: 'Sub-Admin not found.' });
+    }
+
+    if (email && email.trim().toLowerCase() !== (subAdmin.email || '').toLowerCase()) {
+      const targetEmail = email.trim().toLowerCase();
+      const existingUser = await User.findOne({ email: targetEmail, _id: { $ne: subAdmin._id } });
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: 'An account with this official email address already exists.' });
+      }
+      subAdmin.email = targetEmail;
     }
 
     if (name) subAdmin.name = name;

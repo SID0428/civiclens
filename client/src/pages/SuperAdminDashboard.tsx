@@ -26,6 +26,7 @@ export const SuperAdminDashboard: React.FC = () => {
   // Edit subadmin modal
   const [editingAdmin, setEditingAdmin] = useState<User | null>(null);
   const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editDepartment, setEditDepartment] = useState('All Departments');
   const [editDistrict, setEditDistrict] = useState('');
@@ -93,6 +94,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const openEditModal = (admin: User) => {
     setEditingAdmin(admin);
     setEditName(admin.name || '');
+    setEditEmail(admin.email || '');
     setEditPhone(admin.phone || '');
     setEditDepartment(admin.department || 'All Departments');
     setEditDistrict(admin.assignedDistrict || '');
@@ -109,6 +111,7 @@ export const SuperAdminDashboard: React.FC = () => {
       const adminId = editingAdmin._id || editingAdmin.id;
       await API.request(`/admin/subadmins/${adminId}`, 'PUT', {
         name: editName,
+        email: editEmail,
         phone: editPhone,
         department: editDepartment,
         assignedDistrict: editDistrict,
@@ -415,12 +418,14 @@ export const SuperAdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Official Email</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Official Email *</label>
                   <input
                     type="email"
-                    disabled
-                    value={editingAdmin.email}
-                    className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 cursor-not-allowed"
+                    required
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="officer@civiclens.gov.in"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
                   />
                 </div>
                 <div>

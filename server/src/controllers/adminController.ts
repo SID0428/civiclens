@@ -93,6 +93,87 @@ export const getAllSubAdmins = async (_req: Request, res: Response): Promise<voi
   }
 };
 
+// @desc    Update Sub-Admin Details
+// @route   PUT /api/admin/subadmins/:id
+export const updateSubAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name, email, phone, department, assignedDistrict, assignedPincodes, password } = req.body;
+
+    const subAdmin = await User.findById(req.params.id);
+    if (!subAdmin || subAdmin.role !== 'subadmin') {
+      res.status(404).json({ success: false, message: 'Sub-Admin not found.' });
+      return;
+    }
+
+    if (email && email.trim().toLowerCase() !== (subAdmin.email || '').toLowerCase()) {
+      const targetEmail = email.trim().toLowerCase();
+      const existingUser = await User.findOne({ email: targetEmail, _id: { $ne: subAdmin._id } });
+      if (existingUser) {
+        res.status(400).json({ success: false, message: 'An account with this official email address already exists.' });
+        return;
+      }
+      subAdmin.email = targetEmail;
+    }
+
+    if (name) subAdmin.name = name;
+    if (phone) subAdmin.phone = phone;
+    if (department) subAdmin.department = department;
+    if (assignedDistrict) subAdmin.assignedDistrict = assignedDistrict;
+    if (assignedPincodes) {
+      let pincodesArray: string[] = [];
+      if (Array.isArray(assignedPincodes)) {
+        pincodesArray = assignedPincodes.map((p) => p.toString().trim());
+      } else if (typeof assignedPincodes === 'string') {
+        pincodesArray = assignedPincodes.split(',').map((p) => p.trim()).filter(Boolean);
+      }
+      subAdmin.assignedPincodes = pincodesArray;
+    }
+    if (password && password.length >= 6) {
+      subAdmin.password = password;
+    }
+
+    await subAdmin.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Sub-Admin ${subAdmin.name} updated successfully.`,
+      subAdmin: {
+        id: subAdmin._id,
+        name: subAdmin.name,
+        email: subAdmin.email,
+        department: subAdmin.department,
+        assignedDistrict: subAdmin.assignedDistrict,
+        assignedPincodes: subAdmin.assignedPincodes,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: (error as Error).message });
+  }
+};
+
+// @desc    Delete Sub-Admin
+// @route   DELETE /api/admin/subadmins/:id
+export const deleteSubAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const subAdmin = await User.findById(req.params.id);
+    if (!subAdmin || subAdmin.role !== 'subadmin') {
+      res.status(404).json({ success: false, message: 'Sub-Admin not found.' });
+      return;
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    await Complaint.updateMany(
+      { assignedSubAdmin: req.params.id },
+      { $set: { assignedSubAdmin: null } }
+    );
+
+    res.status(200).json({ success: true, message: `Sub-Admin ${subAdmin.name} deleted.` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: (error as Error).message });
+  }
+};
+
 // @desc    3. Update Sub-Admin Assigned Pincodes / Jurisdiction
 // @route   PUT /api/admin/subadmins/:id/pincodes
 export const updateSubAdminPincodes = async (req: Request, res: Response): Promise<void> => {
