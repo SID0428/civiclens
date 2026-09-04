@@ -273,15 +273,21 @@ export const sendSubAdminWelcomeEmail = async (officer: {
       if (response.ok && data.id) {
         console.log(`[Resend Welcome Email SUCCESS] Email sent to officer ${officer.email}. Id: ${data.id}`);
         return { success: true, messageId: data.id };
+      } else {
+        const errorMsg = data.message || data.error || JSON.stringify(data);
+        console.error(`[Resend Welcome Email Error]: ${errorMsg}`);
+        return { success: false, error: errorMsg };
       }
     } catch (err: any) {
       console.error(`[Resend Welcome Email Exception] ${err.message}`);
+      return { success: false, error: err.message };
     }
   }
 
   // 2. Brevo HTTP API
   if (brevoApiKey) {
     try {
+      console.log(`[Brevo Email] Sending sub-admin welcome email to ${officer.email} from ${senderEmail}...`);
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: { 'accept': 'application/json', 'api-key': brevoApiKey, 'content-type': 'application/json' },
@@ -296,9 +302,14 @@ export const sendSubAdminWelcomeEmail = async (officer: {
       if (response.ok) {
         console.log(`[Brevo Welcome Email SUCCESS] Email sent to officer ${officer.email}. MessageId: ${data.messageId}`);
         return { success: true, messageId: data.messageId };
+      } else {
+        const errorMsg = data.message || JSON.stringify(data);
+        console.error(`[Brevo Welcome Email Error]: ${errorMsg}`);
+        return { success: false, error: errorMsg };
       }
     } catch (err: any) {
       console.error(`[Brevo Welcome Email Exception] ${err.message}`);
+      return { success: false, error: err.message };
     }
   }
 

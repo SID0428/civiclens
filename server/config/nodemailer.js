@@ -251,7 +251,7 @@ const sendSubAdminWelcomeEmail = async (officer) => {
         body: JSON.stringify({
           from: 'CivicLens State Governance <onboarding@resend.dev>',
           to: [officer.email],
-          subject: `[CivicLens] Your District Sub-Admin Officer Account & Credentials`,
+          subject: `[CivicLens] Your District Officer Credentials & Admin Portal Access`,
           html: htmlContent,
         }),
       });
@@ -259,22 +259,28 @@ const sendSubAdminWelcomeEmail = async (officer) => {
       if (response.ok && data.id) {
         console.log(`[Resend Welcome Email SUCCESS] Email sent to officer ${officer.email}. Id: ${data.id}`);
         return { success: true, messageId: data.id };
+      } else {
+        const errorMsg = data.message || data.error || JSON.stringify(data);
+        console.error(`[Resend Welcome Email Error]: ${errorMsg}`);
+        return { success: false, error: errorMsg };
       }
     } catch (err) {
-      console.error(`[Resend Welcome Email Error]: ${err.message}`);
+      console.error(`[Resend Welcome Email Exception] ${err.message}`);
+      return { success: false, error: err.message };
     }
   }
 
   // 2. Brevo HTTP API
   if (brevoApiKey) {
     try {
+      console.log(`[Brevo Email] Sending sub-admin welcome email to ${officer.email} from ${senderEmail}...`);
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: { 'accept': 'application/json', 'api-key': brevoApiKey, 'content-type': 'application/json' },
         body: JSON.stringify({
           sender: { name: 'CivicLens State Governance', email: senderEmail },
           to: [{ email: officer.email }],
-          subject: `[CivicLens] Your District Sub-Admin Officer Account & Credentials`,
+          subject: `[CivicLens] Your District Officer Credentials & Admin Portal Access`,
           htmlContent: htmlContent,
         }),
       });
@@ -282,9 +288,14 @@ const sendSubAdminWelcomeEmail = async (officer) => {
       if (response.ok) {
         console.log(`[Brevo Welcome Email SUCCESS] Email sent to officer ${officer.email}. MessageId: ${data.messageId}`);
         return { success: true, messageId: data.messageId };
+      } else {
+        const errorMsg = data.message || JSON.stringify(data);
+        console.error(`[Brevo Welcome Email Error]: ${errorMsg}`);
+        return { success: false, error: errorMsg };
       }
     } catch (err) {
-      console.error(`[Brevo Welcome Email Error]: ${err.message}`);
+      console.error(`[Brevo Welcome Email Exception] ${err.message}`);
+      return { success: false, error: err.message };
     }
   }
 
@@ -294,12 +305,12 @@ const sendSubAdminWelcomeEmail = async (officer) => {
     const info = await transporter.sendMail({
       from: `"CivicLens - State Governance" <${emailUser || 'noreply@civiclens.gov.in'}>`,
       to: officer.email,
-      subject: `[CivicLens] Your District Sub-Admin Officer Account & Credentials`,
+      subject: `[CivicLens] Your District Officer Credentials & Admin Portal Access`,
       html: htmlContent,
     });
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error(`[Welcome Email Nodemailer Error]: ${error.message}`);
+    console.error(`[Welcome Email Error]: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
