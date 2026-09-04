@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Complaint = require('../models/Complaint');
+const { sendSubAdminWelcomeEmail } = require('../config/nodemailer');
 
 // @desc    1. Create a New Sub-Admin (District Officer) with Assigned Pincodes
 // @route   POST /api/admin/create-subadmin
