@@ -1,21 +1,20 @@
 const nodemailer = require('nodemailer');
 
-let cachedTransporter = null;
-
 const getTransporter = () => {
-  if (cachedTransporter) return cachedTransporter;
-
   const emailUser = (process.env.EMAIL_USER || '').trim();
   const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
+  const emailHost = (process.env.EMAIL_HOST || 'smtp.gmail.com').trim();
+  const emailPort = parseInt(process.env.EMAIL_PORT || '465', 10);
+  const isSecure = emailPort === 465;
 
   if (!emailUser || !emailPass) {
-    console.warn('[Google SMTP] EMAIL_USER and EMAIL_PASS are not configured. Email OTPs will be logged to console in dev mode.');
+    console.warn('[Google SMTP] EMAIL_USER and EMAIL_PASS are not configured.');
   }
 
-  cachedTransporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // Direct SSL port 465 for reliable cloud server delivery
+  return nodemailer.createTransport({
+    host: emailHost,
+    port: emailPort,
+    secure: isSecure,
     auth: {
       user: emailUser,
       pass: emailPass,
@@ -24,8 +23,6 @@ const getTransporter = () => {
       rejectUnauthorized: false,
     },
   });
-
-  return cachedTransporter;
 };
 
 const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
