@@ -414,6 +414,30 @@ const getSubAdminComplaints = async (req, res) => {
     const district = (subAdmin.assignedDistrict || '').trim();
     const cleanDist = district.replace(/district|city|county/gi, '').trim();
 
+    // Auto-repair & backfill any older complaints missing district metadata
+    try {
+      const emptyDistrictComplaints = await Complaint.find({
+        $or: [{ district: '' }, { district: { $exists: false } }, { district: 'Unknown' }],
+        latitude: { $ne: null },
+        longitude: { $ne: null },
+      }).limit(10);
+
+      for (const comp of emptyDistrictComplaints) {
+        if (comp.latitude && comp.longitude) {
+          const geo = await fetchReverseGeocode(comp.latitude, comp.longitude);
+          if (geo) {
+            let updated = false;
+            if (geo.district) { comp.district = geo.district; updated = true; }
+            if (geo.pincode && (!comp.pincode || comp.pincode === '')) { comp.pincode = geo.pincode; updated = true; }
+            if (geo.address && (!comp.address || comp.address === 'Geotagged location')) { comp.address = geo.address; updated = true; }
+            if (updated) await comp.save();
+          }
+        }
+      }
+    } catch (e) {
+      // non-blocking backfill
+    }
+
     let query = {};
 
     const isStatewide =
