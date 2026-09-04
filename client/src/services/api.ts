@@ -39,7 +39,11 @@ export const API = {
     if (genericToken && genericRole === targetRole) {
       return genericToken;
     }
-    return null;
+
+    return localStorage.getItem('civiclens_superadmin_token') ||
+           localStorage.getItem('civiclens_subadmin_token') ||
+           localStorage.getItem('civiclens_citizen_token') ||
+           null;
   },
 
   getUser: (role?: string): User | null => {
@@ -110,10 +114,10 @@ export const API = {
     const headers: Record<string, string> = {};
 
     let targetRole: string | undefined;
-    if (endpoint.includes('superadmin')) {
+    if (endpoint.includes('superadmin') || window.location.pathname.startsWith('/superadmin')) {
       targetRole = 'superadmin';
     } else if (endpoint.includes('subadmin') || endpoint.startsWith('/admin')) {
-      targetRole = 'subadmin';
+      targetRole = localStorage.getItem('civiclens_superadmin_token') ? 'superadmin' : 'subadmin';
     }
 
     const token = API.getToken(targetRole);

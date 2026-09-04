@@ -109,7 +109,9 @@ const verifyOTP = async (req, res) => {
         phone: user.phone,
         role: user.role,
         department: user.department,
+        assignedDistrict: user.assignedDistrict,
         assignedPincodes: user.assignedPincodes,
+        officialId: user.officialId,
       },
     });
   } catch (error) {
@@ -191,9 +193,12 @@ const loginWithPassword = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         department: user.department,
+        assignedDistrict: user.assignedDistrict,
         assignedPincodes: user.assignedPincodes,
+        officialId: user.officialId,
       },
     });
   } catch (error) {

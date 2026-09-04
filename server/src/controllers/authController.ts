@@ -126,7 +126,9 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
         phone: user.phone,
         role: user.role,
         department: user.department,
+        assignedDistrict: user.assignedDistrict,
         assignedPincodes: user.assignedPincodes,
+        officialId: user.officialId,
       },
     });
   } catch (error) {
@@ -222,9 +224,12 @@ export const loginWithPassword = async (req: Request, res: Response): Promise<vo
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         department: user.department,
+        assignedDistrict: user.assignedDistrict,
         assignedPincodes: user.assignedPincodes,
+        officialId: user.officialId,
       },
     });
   } catch (error) {
