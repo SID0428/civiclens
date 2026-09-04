@@ -49,6 +49,12 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
     ''
   ).trim();
 
+  const senderEmail = (
+    process.env.BREVO_SENDER_EMAIL ||
+    process.env.EMAIL_USER ||
+    '245ucs209@gbu.ac.in'
+  ).trim();
+
   console.log(`[OTP DISPATCHED] OTP for ${toEmail}: ${otpCode} (Purpose: ${purpose})`);
 
   const htmlContent = `
@@ -108,7 +114,7 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
   // 2. Try Brevo HTTP API (Port 443 - Never blocked on Render)
   if (brevoApiKey) {
     try {
-      console.log(`[Email Transport] Sending OTP via Brevo HTTPS API (Port 443)...`);
+      console.log(`[Email Transport] Sending OTP via Brevo HTTPS API (Port 443) from ${senderEmail}...`);
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -117,7 +123,7 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          sender: { name: 'CivicLens Portal', email: emailUser || 'noreply@civiclens.gov.in' },
+          sender: { name: 'CivicLens Portal', email: senderEmail },
           to: [{ email: toEmail }],
           subject: `[CivicLens] Your One-Time Password (OTP) for ${purpose}`,
           htmlContent: htmlContent,
@@ -149,7 +155,7 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
 
   if (!isConfigured) {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('Email credentials (RESEND_API_KEY or EMAIL_USER/EMAIL_PASS) are not configured in Render.');
+      throw new Error('Email credentials (RESEND_API_KEY or BREVO_API_KEY) are not configured in Render.');
     }
     console.log(`[DEV MODE - Google SMTP Simulation] OTP for ${toEmail}: ${otpCode}`);
     return { success: true, devMode: true, otpCode };
@@ -179,7 +185,7 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
       return { success: true, messageId: info.messageId };
     } catch (fallbackErr) {
       console.error(`[Google SMTP Error] Failed on both ports ${primaryPort} & ${fallbackPort}: ${fallbackErr.message}`);
-      throw new Error(`Google SMTP Error: Connection timeout on Render. Please use RESEND_API_KEY in Render.`);
+      throw new Error(`Google SMTP Error: Connection timeout on Render. Please use BREVO_API_KEY in Render.`);
     }
   }
 };
