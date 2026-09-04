@@ -59,6 +59,29 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('All');
+
+  const isAllDepartments = !user?.department || user.department === 'All Departments' || user.department === 'All';
+
+  const DEPARTMENTS = [
+    'All',
+    'Roads & Potholes',
+    'Garbage & Sanitation',
+    'Water Supply & Sewage',
+    'Electricity & Streetlights',
+    'Public Infrastructure',
+    'Encroachment & Traffic',
+    'Other',
+  ];
+
+  const filteredComplaints = complaints.filter((c) => {
+    if (selectedDepartment === 'All') return true;
+    if (selectedDepartment === 'Other') {
+      return !['Roads & Potholes', 'Garbage & Sanitation', 'Water Supply & Sewage', 'Electricity & Streetlights', 'Public Infrastructure', 'Encroachment & Traffic'].includes(c.category);
+    }
+    return c.category === selectedDepartment;
+  });
+
   const total = complaints.length;
   const pending = complaints.filter((c) => c.status === 'Pending' || c.status === 'Under Review').length;
   const inProgress = complaints.filter((c) => c.status === 'In Progress').length;
@@ -116,11 +139,73 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Grievance Feed */}
-      <div className="space-y-4">
+      {/* Section-Wise Department Summary Cards (Visible when managing All Departments or as Quick Overview) */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4 shadow-sm">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-slate-900">District Grievance Triage Feed</h2>
-          <button onClick={loadComplaints} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+          <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-blue-600" />
+            <span>Section-Wise Department Breakdown</span>
+          </h2>
+          <span className="text-xs text-slate-500">Click any department to filter feed</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {DEPARTMENTS.map((dept) => {
+            const count = dept === 'All'
+              ? complaints.length
+              : complaints.filter((c) => {
+                  if (dept === 'Other') {
+                    return !['Roads & Potholes', 'Garbage & Sanitation', 'Water Supply & Sewage', 'Electricity & Streetlights', 'Public Infrastructure', 'Encroachment & Traffic'].includes(c.category);
+                  }
+                  return c.category === dept;
+                }).length;
+
+            const isSelected = selectedDepartment === dept;
+
+            return (
+              <button
+                key={dept}
+                onClick={() => setSelectedDepartment(dept)}
+                className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                <span className={`text-[10px] font-bold truncate ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
+                  {dept}
+                </span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className={`text-xl font-black font-mono ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                    {count}
+                  </span>
+                  <span className={`text-[9px] font-bold uppercase ${isSelected ? 'text-blue-200' : 'text-slate-400'}`}>
+                    issues
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Grievance Feed Header & Department Filter Bar */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">
+              District Grievance Triage Feed
+              {selectedDepartment !== 'All' && (
+                <span className="ml-2 text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
+                  {selectedDepartment} ({filteredComplaints.length})
+                </span>
+              )}
+            </h2>
+            <p className="text-xs text-slate-500">
+              Showing {filteredComplaints.length} of {complaints.length} assigned grievances
+            </p>
+          </div>
+          <button onClick={loadComplaints} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 self-start sm:self-auto">
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Refresh List</span>
           </button>
@@ -128,15 +213,19 @@ export const AdminDashboard: React.FC = () => {
 
         {loading ? (
           <div className="py-12 text-center text-slate-400">Querying district grievances...</div>
-        ) : complaints.length === 0 ? (
+        ) : filteredComplaints.length === 0 ? (
           <div className="bg-white rounded-3xl p-12 text-center border border-slate-200">
             <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-slate-900">All Caught Up!</h3>
-            <p className="text-xs text-slate-500 mt-1">No pending civic complaints in your assigned district pincodes.</p>
+            <h3 className="text-lg font-bold text-slate-900">No Complaints Found</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              {selectedDepartment === 'All'
+                ? 'No pending civic complaints in your assigned district pincodes.'
+                : `No complaints found for "${selectedDepartment}".`}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {complaints.map((item) => {
+            {filteredComplaints.map((item) => {
               const mainImg = item.images && item.images.length > 0 ? item.images[0].url : item.imageUrl;
 
               return (
