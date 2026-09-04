@@ -145,7 +145,7 @@ exports.getAnalytics = async (req, res) => {
         inProgressComplaints,
         resolvedComplaints,
         rejectedComplaints,
-        resolutionRate: `${resolutionRate}%`,
+        resolutionRate: `${resolutionRate}`,
         totalCitizens,
         totalSubAdmins,
       },

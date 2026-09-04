@@ -189,7 +189,9 @@ export const SuperAdminDashboard: React.FC = () => {
           </div>
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div className="text-xs font-bold text-emerald-600 uppercase">Resolved Rate</div>
-            <div className="text-3xl font-black text-emerald-600 mt-1">{stats.resolutionRate}%</div>
+            <div className="text-3xl font-black text-emerald-600 mt-1">
+              {stats.resolutionRate ? `${stats.resolutionRate.toString().replace(/%/g, '')}%` : '0%'}
+            </div>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div className="text-xs font-bold text-blue-600 uppercase">Active Citizens</div>
