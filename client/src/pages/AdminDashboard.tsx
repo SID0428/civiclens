@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, CheckCircle2, Shield, RefreshCw, PenSquare, MapPin } from 'lucide-react';
+import { Building2, CheckCircle2, Shield, RefreshCw, PenSquare, MapPin, ExternalLink } from 'lucide-react';
 import { API } from '../services/api';
 import { Complaint, User } from '../types';
 
@@ -298,9 +298,20 @@ export const AdminDashboard: React.FC = () => {
                       </div>
                       <h3 className="font-bold text-slate-900 text-base line-clamp-1">{item.title}</h3>
                       <p className="text-slate-500 text-xs line-clamp-2">{item.description}</p>
-                      <div className="text-[11px] text-slate-500 truncate flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                        <span>{item.address}</span>
+                      <div className="space-y-1.5 text-[11px] bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div className="text-slate-700 font-semibold flex items-start gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <span className="line-clamp-2">{item.address || `District: ${item.district || 'N/A'}, PIN: ${item.pincode}`}</span>
+                        </div>
+                        <a
+                          href={`https://www.google.com/maps?q=${item.latitude},${item.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sky-600 font-bold hover:text-sky-700 hover:underline pt-0.5"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>View Location on Google Maps ({item.latitude.toFixed(5)}, {item.longitude.toFixed(5)})</span>
+                        </a>
                       </div>
                       {item.citizen && (
                         <div className="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">

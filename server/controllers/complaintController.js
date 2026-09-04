@@ -53,13 +53,33 @@ const createComplaintRecord = async ({
 
   const primaryImageUrl = images && images.length > 0 ? images[0].url : '';
 
+  const cleanDistrict = (district || '').toString().trim();
+
+  // 1. Try District + Category match
   let assignedAdmin = await User.findOne({
     role: 'subadmin',
-    assignedPincodes: cleanPincode,
-    $or: [{ department: category }, { department: '' }, { department: { $exists: false } }],
+    assignedDistrict: new RegExp(`^${cleanDistrict}$`, 'i'),
+    $or: [{ department: category }, { department: 'All Departments' }, { department: '' }, { department: { $exists: false } }],
   });
 
-  if (!assignedAdmin) {
+  // 2. Try District match
+  if (!assignedAdmin && cleanDistrict) {
+    assignedAdmin = await User.findOne({
+      role: 'subadmin',
+      assignedDistrict: new RegExp(`^${cleanDistrict}$`, 'i'),
+    });
+  }
+
+  // 3. Try District partial regex match
+  if (!assignedAdmin && cleanDistrict) {
+    assignedAdmin = await User.findOne({
+      role: 'subadmin',
+      assignedDistrict: { $regex: cleanDistrict, $options: 'i' },
+    });
+  }
+
+  // 4. Fallback to pincode match if district is not assigned
+  if (!assignedAdmin && cleanPincode) {
     assignedAdmin = await User.findOne({
       role: 'subadmin',
       assignedPincodes: cleanPincode,
@@ -80,7 +100,7 @@ const createComplaintRecord = async ({
     },
     address: address || 'Geotagged location',
     pincode: cleanPincode,
-    district: district || '',
+    district: cleanDistrict,
     state: state || '',
     priority: priority || 'Medium',
     citizen: citizenUser._id,
@@ -90,8 +110,8 @@ const createComplaintRecord = async ({
       {
         status: 'Pending',
         message: assignedAdmin
-          ? `Grievance registered with GPS (${latNum.toFixed(5)}, ${lngNum.toFixed(5)}) and auto-routed to District Officer (${assignedAdmin.name}) for PIN ${cleanPincode}`
-          : `Grievance registered with GPS (${latNum.toFixed(5)}, ${lngNum.toFixed(5)}) for PIN ${cleanPincode}. Awaiting assignment.`,
+          ? `Grievance registered with GPS (${latNum.toFixed(5)}, ${lngNum.toFixed(5)}) and auto-routed to District (${assignedAdmin.assignedDistrict || cleanDistrict}) Officer (${assignedAdmin.name})`
+          : `Grievance registered with GPS (${latNum.toFixed(5)}, ${lngNum.toFixed(5)}) for District (${cleanDistrict || 'State'}). Awaiting assignment.`,
         updatedBy: citizenUser._id,
         updaterRole: 'citizen',
         timestamp: new Date(),
@@ -313,16 +333,18 @@ exports.getSubAdminComplaints = async (req, res) => {
   try {
     const subAdmin = req.user;
     const pincodes = subAdmin.assignedPincodes || [];
+    const district = (subAdmin.assignedDistrict || '').trim();
 
     const query = {
       $or: [
-        { pincode: { $in: pincodes } },
         { assignedSubAdmin: subAdmin._id },
+        ...(district ? [{ district: new RegExp(`^${district}$`, 'i') }, { district: new RegExp(district, 'i') }] : []),
+        ...(pincodes.length > 0 ? [{ pincode: { $in: pincodes } }] : []),
       ],
     };
 
     const complaints = await Complaint.find(query).populate('citizen', 'name email phone').sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: complaints.length, assignedPincodes: pincodes, complaints });
+    res.status(200).json({ success: true, count: complaints.length, assignedDistrict: district, assignedPincodes: pincodes, complaints });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

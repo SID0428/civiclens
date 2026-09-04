@@ -80,7 +80,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
     ctx.font = `bold ${fontSize}px "Plus Jakarta Sans", sans-serif`;
     ctx.fillStyle = '#38bdf8';
     ctx.fillText(
-      `CIVICLENS SENSOR GPS: ${currentLat.toFixed(6)}, ${currentLng.toFixed(6)} | PIN: ${pincode || 'N/A'}`,
+      `CIVICLENS | PIN CODE: ${pincode || 'N/A'}`,
       20,
       canvas.height - barHeight + fontSize + 8
     );
@@ -88,7 +88,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
     ctx.font = `${fontSize * 0.85}px sans-serif`;
     ctx.fillStyle = '#ffffff';
     ctx.fillText(
-      `Timestamp: ${new Date().toLocaleString('en-IN')} | ${(address || '').substring(0, 55)}`,
+      `Timestamp: ${new Date().toLocaleString('en-IN')}`,
       20,
       canvas.height - barHeight + fontSize * 2.2 + 10
     );
