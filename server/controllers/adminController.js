@@ -60,6 +60,17 @@ exports.createSubAdmin = async (req, res) => {
       { $set: { assignedSubAdmin: subAdmin._id } }
     );
 
+    // Send welcome email with login credentials to the new officer
+    await sendSubAdminWelcomeEmail({
+      name: subAdmin.name,
+      email: subAdmin.email,
+      rawPassword: password, // original password before bcrypt hashing
+      department: subAdmin.department,
+      assignedDistrict: subAdmin.assignedDistrict,
+      assignedPincodes: subAdmin.assignedPincodes,
+      officialId: subAdmin.officialId,
+    });
+
     res.status(201).json({
       success: true,
       message: `District Sub-Admin ${name} created and assigned to ${pincodesArray.length} pincode(s).`,
