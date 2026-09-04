@@ -55,6 +55,31 @@ const seedSuperAdmin = async () => {
 };
 seedSuperAdmin();
 
+// ===== TEMPORARY DEBUG ENDPOINT (REMOVE AFTER DIAGNOSIS) =====
+const Complaint = require('./models/Complaint');
+app.get('/api/debug/db-state', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const dbState = mongoose.connection.readyState; // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+    const allComplaints = await Complaint.find({}).select('title district pincode address assignedSubAdmin status createdAt').lean();
+    const allSubAdmins = await User.find({ role: 'subadmin' }).select('name email assignedDistrict assignedPincodes department officialId').lean();
+    const allSuperAdmins = await User.find({ role: 'superadmin' }).select('name email assignedDistrict').lean();
+    res.json({
+      dbState,
+      dbHost: mongoose.connection.host,
+      totalComplaints: allComplaints.length,
+      complaints: allComplaints,
+      totalSubAdmins: allSubAdmins.length,
+      subAdmins: allSubAdmins,
+      totalSuperAdmins: allSuperAdmins.length,
+      superAdmins: allSuperAdmins,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message, stack: err.stack });
+  }
+});
+// ===== END TEMPORARY DEBUG ENDPOINT =====
+
 // Mount Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/complaints', require('./routes/complaintRoutes'));
