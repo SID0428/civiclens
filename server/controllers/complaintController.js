@@ -565,150 +565,20 @@ const updateComplaintStatus = async (req, res) => {
   }
 };
 
-// 8. Analyze Complaint Image using Groq Vision API
+// 8. Analyze Complaint Image using Groq Vision API (Disabled)
 const analyzeComplaintImage = async (req, res) => {
   try {
-    let imageBase64 = '';
-
-    if (req.file) {
-      imageBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-    } else if (req.body.imageBase64) {
-      imageBase64 = req.body.imageBase64;
-    } else if (req.body.imageUrl) {
-      imageBase64 = req.body.imageUrl;
-    }
-
-    if (!imageBase64) {
-      return res.status(400).json({ success: false, message: 'Please upload or provide an image for AI analysis.' });
-    }
-
-    const groqApiKey = (process.env.GROQ_API_KEY || process.env.GROQ_KEY || '').trim();
-
-    if (!groqApiKey) {
-      console.warn('[Groq AI Warning]: GROQ_API_KEY is not configured in environment variables.');
-      return res.status(200).json({
-        success: true,
-        isValidCivicIssue: true,
-        isFallback: true,
-        category: 'Roads & Potholes',
-        priority: 'Medium',
-        title: 'Reported Civic Issue',
-        description: 'Auto-detected geotagged issue for municipal review.',
-        message: 'GROQ_API_KEY not set. Using default category & title.',
-      });
-    }
-
-    console.log('[Groq AI] Sending image to Groq Vision API (llama-3.2-11b-vision-preview)...');
-
-    const promptText = `You are a smart civic infrastructure AI analyzer for CivicLens governance platform. Analyze this image carefully to detect if it depicts a real public civic issue or problem (such as road damage/pothole, garbage dump/litter, water leakage/sewage overflow, broken streetlight/electrical hazard, damaged public building/infrastructure, traffic encroachment, or illegal dumping).
-
-Respond ONLY with a valid JSON object matching this schema without any markdown surrounding text or codeblocks:
-{
-  "isValidCivicIssue": true or false,
-  "rejectionReason": "If isValidCivicIssue is false, state why (e.g. Image does not show any civic issue, it appears to be a selfie/indoor photo/unrelated object)",
-  "category": "Must be one of: Roads & Potholes, Garbage & Sanitation, Water Supply & Sewage, Electricity & Streetlights, Public Infrastructure, Encroachment & Traffic, Other",
-  "priority": "Must be one of: Low, Medium, High, Critical",
-  "title": "A concise 4-7 word title summarizing the civic issue",
-  "description": "A brief 1-2 sentence description of the observed civic damage"
-}`;
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${groqApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.2-11b-vision-preview',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: promptText },
-              { type: 'image_url', image_url: { url: imageBase64 } },
-            ],
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 500,
-        response_format: { type: 'json_object' },
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('[Groq API Error]:', data);
-      const errDetail = data.error?.message || JSON.stringify(data);
-      throw new Error(`Groq API Error: ${errDetail}`);
-    }
-
-    const aiContent = data.choices?.[0]?.message?.content || '{}';
-    console.log('[Groq AI Response Raw]:', aiContent);
-
-    let parsed = {};
-    try {
-      const cleanJsonStr = aiContent.replace(/```json/g, '').replace(/```/g, '').trim();
-      parsed = JSON.parse(cleanJsonStr);
-    } catch (e) {
-      console.warn('[Groq JSON Parse Warning]:', e);
-      parsed = {
-        isValidCivicIssue: true,
-        category: 'Other',
-        priority: 'Medium',
-        title: 'Geotagged Civic Issue',
-        description: aiContent.substring(0, 150),
-      };
-    }
-
-    if (parsed.isValidCivicIssue === false) {
-      return res.status(200).json({
-        success: true,
-        isValidCivicIssue: false,
-        rejectionReason: parsed.rejectionReason || 'Image does not show any civic issue',
-        message: 'Image does not show any civic issue',
-      });
-    }
-
-    const validCategories = [
-      'Roads & Potholes',
-      'Garbage & Sanitation',
-      'Water Supply & Sewage',
-      'Electricity & Streetlights',
-      'Public Infrastructure',
-      'Encroachment & Traffic',
-      'Other',
-    ];
-
-    let category = parsed.category || 'Other';
-    if (!validCategories.includes(category)) {
-      const lowerCat = category.toLowerCase();
-      if (lowerCat.includes('road') || lowerCat.includes('pothole')) category = 'Roads & Potholes';
-      else if (lowerCat.includes('garbage') || lowerCat.includes('waste') || lowerCat.includes('trash') || lowerCat.includes('clean')) category = 'Garbage & Sanitation';
-      else if (lowerCat.includes('water') || lowerCat.includes('sewage') || lowerCat.includes('pipe') || lowerCat.includes('leak')) category = 'Water Supply & Sewage';
-      else if (lowerCat.includes('electric') || lowerCat.includes('wire') || lowerCat.includes('light') || lowerCat.includes('pole')) category = 'Electricity & Streetlights';
-      else if (lowerCat.includes('traffic') || lowerCat.includes('park') || lowerCat.includes('encroach')) category = 'Encroachment & Traffic';
-      else category = 'Other';
-    }
-
-    const validPriorities = ['Low', 'Medium', 'High', 'Critical'];
-    let priority = parsed.priority || 'Medium';
-    if (!validPriorities.includes(priority)) priority = 'Medium';
-
     res.status(200).json({
       success: true,
       isValidCivicIssue: true,
-      category,
-      priority,
-      title: parsed.title || 'Geotagged Civic Issue',
-      description: parsed.description || 'Auto-detected civic damage reported via Groq Vision AI.',
+      category: 'Roads & Potholes',
+      priority: 'Medium',
+      title: 'Geotagged Civic Issue',
+      description: 'Geotagged grievance lodged for municipal review.',
+      message: 'Groq AI vision workflow disabled.',
     });
   } catch (error) {
-    console.error('[Analyze Complaint Image Exception]:', error.message);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

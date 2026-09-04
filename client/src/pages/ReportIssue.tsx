@@ -141,39 +141,13 @@ export const ReportIssue: React.FC = () => {
 
   const handlePhotoCaptured = async (file: File, dataUrl: string, lat: number, lng: number) => {
     setPhotos((prev) => [...prev, { file, dataUrl, lat, lng }]);
-    analyzePhotoWithGroq(file, dataUrl);
+    setIsValidCivicIssue(true);
   };
 
   const analyzePhotoWithGroq = async (file: File, dataUrl: string) => {
-    setAnalyzingAi(true);
-    setAiError('');
-    setAiSuccessBadge(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('imageBase64', dataUrl);
-
-      const res = await API.request('/complaints/analyze-image', 'POST', formData, true);
-
-      if (res.isValidCivicIssue === false) {
-        setIsValidCivicIssue(false);
-        setAiError(res.rejectionReason || 'Image does not show any civic issue');
-      } else {
-        setIsValidCivicIssue(true);
-        if (res.title) setTitle(res.title);
-        if (res.category) setCategory(res.category);
-        if (res.priority) setPriority(res.priority);
-        if (res.description && (!description || description.length < 10)) {
-          setDescription(res.description);
-        }
-        setAiSuccessBadge(`✨ Auto-detected by Groq AI Vision: ${res.category} (Severity: ${res.priority})`);
-      }
-    } catch (err: any) {
-      console.warn('Groq AI Vision Error:', err);
-    } finally {
-      setAnalyzingAi(false);
-    }
+    // Groq AI Vision disabled
+    setIsValidCivicIssue(true);
+    setAnalyzingAi(false);
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -197,11 +171,6 @@ export const ReportIssue: React.FC = () => {
 
     if (photos.length === 0) {
       alert('Please capture at least one live camera photo.');
-      return;
-    }
-
-    if (isValidCivicIssue === false) {
-      alert('Image does not show any civic issue. Please capture or upload a clear photo of a public civic problem to submit.');
       return;
     }
 
