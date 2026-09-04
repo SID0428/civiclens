@@ -29,6 +29,16 @@ const generateToken = (id, role) => {
   );
 };
 
+const buildDistrictRegex = (districtStr) => {
+  if (!districtStr) return null;
+  const raw = districtStr.toString().trim();
+  const cleaned = raw.replace(/district|city|county/gi, '').trim();
+  const target = cleaned || raw;
+  if (!target) return null;
+  const escaped = target.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&').replace(/\s+/g, '\\s+');
+  return new RegExp(escaped, 'i');
+};
+
 const createComplaintRecord = async ({
   title,
   description,
@@ -54,31 +64,27 @@ const createComplaintRecord = async ({
   const primaryImageUrl = images && images.length > 0 ? images[0].url : '';
 
   const cleanDistrict = (district || '').toString().trim();
+  const distRegex = buildDistrictRegex(cleanDistrict);
 
-  // 1. Try District + Category match
-  let assignedAdmin = await User.findOne({
-    role: 'subadmin',
-    assignedDistrict: new RegExp(`^${cleanDistrict}$`, 'i'),
-    $or: [{ department: category }, { department: 'All Departments' }, { department: '' }, { department: { $exists: false } }],
-  });
-
-  // 2. Try District match
-  if (!assignedAdmin && cleanDistrict) {
+  // 1. Try District + Category match (Case-Insensitive small/upper case)
+  let assignedAdmin = null;
+  if (distRegex) {
     assignedAdmin = await User.findOne({
       role: 'subadmin',
-      assignedDistrict: new RegExp(`^${cleanDistrict}$`, 'i'),
+      assignedDistrict: distRegex,
+      $or: [{ department: category }, { department: 'All Departments' }, { department: '' }, { department: { $exists: false } }],
     });
   }
 
-  // 3. Try District partial regex match
-  if (!assignedAdmin && cleanDistrict) {
+  // 2. Try District match (Case-Insensitive small/upper case)
+  if (!assignedAdmin && distRegex) {
     assignedAdmin = await User.findOne({
       role: 'subadmin',
-      assignedDistrict: { $regex: cleanDistrict, $options: 'i' },
+      assignedDistrict: distRegex,
     });
   }
 
-  // 4. Fallback to pincode match if district is not assigned
+  // 3. Fallback to pincode match if district is not assigned
   if (!assignedAdmin && cleanPincode) {
     assignedAdmin = await User.findOne({
       role: 'subadmin',
@@ -341,10 +347,17 @@ const getSubAdminComplaints = async (req, res) => {
     if (!district || district === 'All' || district === 'State Jurisdiction' || district === 'All Districts' || district === 'Central District') {
       query = {}; // Super-Admin / All Jurisdiction access
     } else {
+      const distRegex = buildDistrictRegex(district);
+      const cleanRegex = buildDistrictRegex(cleanDist);
+
+      const districtOrConditions = [];
+      if (distRegex) districtOrConditions.push({ district: distRegex });
+      if (cleanRegex && cleanRegex.source !== distRegex?.source) districtOrConditions.push({ district: cleanRegex });
+
       query = {
         $or: [
           { assignedSubAdmin: subAdmin._id },
-          ...(cleanDist ? [{ district: new RegExp(cleanDist, 'i') }] : []),
+          ...districtOrConditions,
           ...(pincodes.length > 0 ? [{ pincode: { $in: pincodes } }] : []),
         ],
       };
@@ -367,7 +380,10 @@ const getSuperAdminComplaints = async (req, res) => {
     const { pincode, district, status, category } = req.query;
     const query = {};
     if (pincode) query.pincode = pincode;
-    if (district) query.district = new RegExp(district, 'i');
+    if (district) {
+      const distRegex = buildDistrictRegex(district);
+      if (distRegex) query.district = distRegex;
+    }
     if (status && status !== 'All') query.status = status;
     if (category && category !== 'All') query.category = category;
 
@@ -393,12 +409,27 @@ const updateComplaintStatus = async (req, res) => {
     }
 
     if (req.user.role === 'subadmin') {
-      const hasPincode = req.user.assignedPincodes.includes(complaint.pincode);
+      const hasPincode = req.user.assignedPincodes && req.user.assignedPincodes.includes(complaint.pincode);
       const isDirectlyAssigned = complaint.assignedSubAdmin && complaint.assignedSubAdmin.toString() === req.user._id.toString();
-      if (!hasPincode && !isDirectlyAssigned) {
+      const adminDist = (req.user.assignedDistrict || '').trim();
+      const cleanAdminDist = adminDist.replace(/district|city|county/gi, '').trim();
+      const complaintDist = (complaint.district || '').trim();
+      const cleanComplaintDist = complaintDist.replace(/district|city|county/gi, '').trim();
+
+      const isDistrictMatch =
+        !adminDist ||
+        adminDist === 'All' ||
+        adminDist === 'State Jurisdiction' ||
+        adminDist === 'All Districts' ||
+        adminDist === 'Central District' ||
+        (cleanAdminDist && cleanComplaintDist && cleanAdminDist.toLowerCase() === cleanComplaintDist.toLowerCase()) ||
+        (adminDist && complaintDist && adminDist.toLowerCase() === complaintDist.toLowerCase()) ||
+        (cleanAdminDist && complaintDist && complaintDist.toLowerCase().includes(cleanAdminDist.toLowerCase()));
+
+      if (!hasPincode && !isDirectlyAssigned && !isDistrictMatch) {
         return res.status(403).json({
           success: false,
-          message: 'You are not authorized to update complaints outside your assigned district pincodes.',
+          message: 'You are not authorized to update complaints outside your assigned district.',
         });
       }
     }
