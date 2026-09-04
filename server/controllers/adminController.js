@@ -73,7 +73,7 @@ exports.createSubAdmin = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `District Sub-Admin ${name} created and assigned to ${pincodesArray.length} pincode(s).`,
+      message: `District Sub-Admin ${name} registered successfully and credentials email sent to ${email}!`,
       subAdmin: {
         id: subAdmin._id,
         name: subAdmin.name,

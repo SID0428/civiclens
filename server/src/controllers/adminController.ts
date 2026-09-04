@@ -45,9 +45,20 @@ export const createSubAdmin = async (req: Request, res: Response): Promise<void>
       isEmailVerified: true,
     });
 
+    const { sendSubAdminWelcomeEmail } = require('../config/nodemailer');
+    await sendSubAdminWelcomeEmail({
+      name: subAdmin.name,
+      email: subAdmin.email,
+      rawPassword: password,
+      department: subAdmin.department,
+      assignedDistrict: subAdmin.assignedDistrict || 'State Jurisdiction',
+      assignedPincodes: subAdmin.assignedPincodes,
+      officialId: subAdmin.officialId,
+    });
+
     res.status(201).json({
       success: true,
-      message: `District Sub-Admin created successfully for PIN(s): ${cleanPincodes.join(', ')}`,
+      message: `District Sub-Admin ${name} registered successfully and credentials email sent to ${email}!`,
       subAdmin: {
         id: subAdmin._id,
         name: subAdmin.name,

@@ -67,7 +67,7 @@ export const SuperAdminDashboard: React.FC = () => {
     setCreating(true);
 
     try {
-      await API.request('/admin/subadmins', 'POST', {
+      const res = await API.request('/admin/subadmins', 'POST', {
         name,
         email,
         password,
@@ -76,7 +76,7 @@ export const SuperAdminDashboard: React.FC = () => {
         assignedDistrict,
         assignedPincodes,
       });
-      alert('District Sub-Admin registered successfully!');
+      alert(res.message || `District Sub-Admin ${name} registered successfully & credentials email dispatched to ${email}!`);
       setIsModalOpen(false);
       setName('');
       setEmail('');
