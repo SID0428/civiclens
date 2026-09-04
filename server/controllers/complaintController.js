@@ -142,7 +142,7 @@ const processUploadedImages = async (files, reqBodyLat, reqBodyLng) => {
 };
 
 // 1. Create Complaint
-exports.createComplaint = async (req, res) => {
+const createComplaint = async (req, res) => {
   try {
     const {
       title,
@@ -207,8 +207,8 @@ exports.createComplaint = async (req, res) => {
   }
 };
 
-// 2. Submit with OTP
-exports.submitComplaintWithOTP = async (req, res) => {
+// 2. Submit Complaint with Email OTP
+const submitComplaintWithOTP = async (req, res) => {
   try {
     const {
       name,
@@ -300,7 +300,7 @@ exports.submitComplaintWithOTP = async (req, res) => {
 };
 
 // 3. Get My Complaints
-exports.getMyComplaints = async (req, res) => {
+const getMyComplaints = async (req, res) => {
   try {
     const complaints = await Complaint.find({ citizen: req.user._id })
       .populate('assignedSubAdmin', 'name email department phone officialId')
@@ -313,7 +313,7 @@ exports.getMyComplaints = async (req, res) => {
 };
 
 // 4. Public feed
-exports.getPublicComplaints = async (req, res) => {
+const getPublicComplaints = async (req, res) => {
   try {
     const { pincode, category, status } = req.query;
     const query = {};
@@ -329,7 +329,7 @@ exports.getPublicComplaints = async (req, res) => {
 };
 
 // 5. Sub-Admin Complaints
-exports.getSubAdminComplaints = async (req, res) => {
+const getSubAdminComplaints = async (req, res) => {
   try {
     const subAdmin = req.user;
     const pincodes = subAdmin.assignedPincodes || [];
@@ -351,7 +351,7 @@ exports.getSubAdminComplaints = async (req, res) => {
 };
 
 // 6. Super-Admin Complaints
-exports.getSuperAdminComplaints = async (req, res) => {
+const getSuperAdminComplaints = async (req, res) => {
   try {
     const { pincode, district, status, category } = req.query;
     const query = {};
@@ -372,7 +372,7 @@ exports.getSuperAdminComplaints = async (req, res) => {
 };
 
 // 7. Update Status
-exports.updateComplaintStatus = async (req, res) => {
+const updateComplaintStatus = async (req, res) => {
   try {
     const { status, resolutionNotes } = req.body;
     const complaint = await Complaint.findById(req.params.id);
