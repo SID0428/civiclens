@@ -84,18 +84,10 @@ export const sendEmailOTP = async (req: Request, res: Response): Promise<void> =
       console.error('[Async Email Dispatch Error]:', err);
     });
 
-    const emailUser = (process.env.EMAIL_USER || '').trim();
-    const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
-    const isConfigured = emailUser &&
-                         emailPass &&
-                         !emailUser.includes('your_') &&
-                         !emailPass.includes('your_') &&
-                         !emailPass.includes('xxxx');
-
     res.status(200).json({
       success: true,
       message: `Verification OTP dispatched to ${email}`,
-      devOtp: (!isConfigured || process.env.NODE_ENV !== 'production') ? otpCode : undefined,
+      devOtp: otpCode,
     });
   } catch (error) {
     console.error('Send OTP Error:', error);

@@ -13,10 +13,15 @@ const getTransporter = () => {
   }
 
   cachedTransporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // Direct SSL port 465 for reliable cloud server delivery
     auth: {
       user: emailUser,
       pass: emailPass,
+    },
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 
