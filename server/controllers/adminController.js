@@ -157,6 +157,78 @@ exports.getAnalytics = async (req, res) => {
   }
 };
 
+// @desc    Update Sub-Admin Details
+// @route   PUT /api/admin/subadmins/:id
+// @access  Private (Super-Admin)
+exports.updateSubAdmin = async (req, res) => {
+  try {
+    const { name, phone, department, assignedDistrict, assignedPincodes, password } = req.body;
+
+    const subAdmin = await User.findById(req.params.id);
+    if (!subAdmin || subAdmin.role !== 'subadmin') {
+      return res.status(404).json({ success: false, message: 'Sub-Admin not found.' });
+    }
+
+    if (name) subAdmin.name = name;
+    if (phone) subAdmin.phone = phone;
+    if (department) subAdmin.department = department;
+    if (assignedDistrict) subAdmin.assignedDistrict = assignedDistrict;
+    if (assignedPincodes) {
+      let pincodesArray = [];
+      if (Array.isArray(assignedPincodes)) {
+        pincodesArray = assignedPincodes.map((p) => p.toString().trim());
+      } else if (typeof assignedPincodes === 'string') {
+        pincodesArray = assignedPincodes.split(',').map((p) => p.trim()).filter(Boolean);
+      }
+      subAdmin.assignedPincodes = pincodesArray;
+    }
+    if (password && password.length >= 6) {
+      subAdmin.password = password;
+    }
+
+    await subAdmin.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Sub-Admin ${subAdmin.name} updated successfully.`,
+      subAdmin: {
+        id: subAdmin._id,
+        name: subAdmin.name,
+        email: subAdmin.email,
+        department: subAdmin.department,
+        assignedDistrict: subAdmin.assignedDistrict,
+        assignedPincodes: subAdmin.assignedPincodes,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete Sub-Admin
+// @route   DELETE /api/admin/subadmins/:id
+// @access  Private (Super-Admin)
+exports.deleteSubAdmin = async (req, res) => {
+  try {
+    const subAdmin = await User.findById(req.params.id);
+    if (!subAdmin || subAdmin.role !== 'subadmin') {
+      return res.status(404).json({ success: false, message: 'Sub-Admin not found.' });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    // Unassign complaints that were assigned to this sub-admin
+    await Complaint.updateMany(
+      { assignedSubAdmin: req.params.id },
+      { $set: { assignedSubAdmin: null } }
+    );
+
+    res.status(200).json({ success: true, message: `Sub-Admin ${subAdmin.name} deleted.` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Aliases for TypeScript frontend compatibility
 if (typeof exports.getAnalytics === 'function') {
   exports.getGovernanceStats = exports.getAnalytics;
