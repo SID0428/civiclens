@@ -387,17 +387,25 @@ export const getSubAdminComplaints = async (req: AuthRequest, res: Response): Pr
     const subAdmin = req.user!;
     const pincodes = subAdmin.assignedPincodes || [];
     const district = (subAdmin.assignedDistrict || '').trim();
+    const cleanDist = district.replace(/district|city|county/gi, '').trim();
 
-    const query: any = {
-      $or: [
-        { assignedSubAdmin: subAdmin._id },
-        ...(district ? [{ district: new RegExp(`^${district}$`, 'i') }, { district: new RegExp(district, 'i') }] : []),
-        ...(pincodes.length > 0 ? [{ pincode: { $in: pincodes } }] : []),
-      ],
-    };
+    let query: any = {};
+
+    if (!district || district === 'All' || district === 'State Jurisdiction' || district === 'All Districts' || district === 'Central District') {
+      query = {}; // Super-Admin / All Jurisdiction access
+    } else {
+      query = {
+        $or: [
+          { assignedSubAdmin: subAdmin._id },
+          ...(cleanDist ? [{ district: new RegExp(cleanDist, 'i') }] : []),
+          ...(pincodes.length > 0 ? [{ pincode: { $in: pincodes } }] : []),
+        ],
+      };
+    }
 
     const complaints = await Complaint.find(query)
       .populate('citizen', 'name email phone')
+      .populate('assignedSubAdmin', 'name email department officialId')
       .sort({ createdAt: -1 });
 
     res.status(200).json({

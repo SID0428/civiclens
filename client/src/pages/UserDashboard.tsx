@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Camera, CheckCircle2, Clock, AlertTriangle, RefreshCw, MapPin } from 'lucide-react';
+import { Camera, CheckCircle2, Clock, AlertTriangle, RefreshCw, MapPin, ExternalLink } from 'lucide-react';
 import { API } from '../services/api';
 import { Complaint } from '../types';
 
@@ -142,19 +142,39 @@ export const UserDashboard: React.FC = () => {
                     </div>
 
                     <div className="p-5 space-y-2.5">
-                      <span className="text-xs font-bold text-sky-700">{item.category}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-sky-700">{item.category}</span>
+                        {item.district && (
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-bold rounded-md">
+                            District: {item.district}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="font-bold text-slate-900 text-base line-clamp-1">{item.title}</h3>
                       <p className="text-slate-500 text-xs line-clamp-2">{item.description}</p>
-                      <div className="text-[11px] text-slate-400 flex items-center gap-1.5 truncate">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{item.address}</span>
+                      
+                      <div className="space-y-1.5 pt-1">
+                        <div className="text-[11px] text-slate-600 flex items-start gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                          <span className="leading-tight">{item.address || 'Geotagged location'} (PIN: {item.pincode || 'N/A'})</span>
+                        </div>
+                        <a
+                          href={`https://www.google.com/maps?q=${item.latitude},${item.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sky-600 hover:text-sky-700 font-bold text-[11px] bg-sky-50 hover:bg-sky-100 px-2.5 py-1 rounded-lg border border-sky-200 transition"
+                        >
+                          <MapPin className="w-3 h-3 text-sky-600" />
+                          <span>📍 View Location on Google Maps</span>
+                          <ExternalLink className="w-3 h-3 ml-0.5" />
+                        </a>
                       </div>
                     </div>
                   </div>
 
                   <div className="p-5 pt-0 border-t border-slate-100 mt-3 pt-3 space-y-2">
                     <div className="text-[11px] text-slate-500 flex justify-between items-center">
-                      <span>Assigned Officer:</span>
+                      <span>Assigned District Officer:</span>
                       <span className="font-bold text-slate-700">
                         {item.assignedSubAdmin ? item.assignedSubAdmin.name : 'District Routing Pending'}
                       </span>
