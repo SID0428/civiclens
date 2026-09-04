@@ -9,8 +9,15 @@ export const Navbar: React.FC = () => {
   const role = API.getRole();
 
   const handleLogout = () => {
+    const currentRole = role;
     API.logout();
-    navigate('/');
+    if (currentRole === 'superadmin') {
+      navigate('/superadmin/login');
+    } else if (currentRole === 'subadmin') {
+      navigate('/admin/login');
+    } else {
+      navigate('/login');
+    }
   };
 
   return (
