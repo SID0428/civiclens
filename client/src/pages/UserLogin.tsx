@@ -17,8 +17,11 @@ export const UserLogin: React.FC = () => {
 
     try {
       const res = await API.request('/auth/login', 'POST', { email, password });
-      API.setAuth(res.token, res.user, res.user.role);
-      navigate(res.user.role === 'citizen' ? '/dashboard' : res.user.role === 'subadmin' ? '/admin/dashboard' : '/superadmin/dashboard');
+      if (res.user.role !== 'citizen') {
+        throw new Error('This portal is for citizens only. Please use the Admin login portal.');
+      }
+      API.setAuth(res.token, res.user, 'citizen');
+      navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {

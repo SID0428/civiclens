@@ -17,10 +17,10 @@ export const AdminLogin: React.FC = () => {
 
     try {
       const res = await API.request('/auth/login', 'POST', { email, password });
-      if (res.user.role !== 'subadmin' && res.user.role !== 'superadmin') {
-        throw new Error('Access Denied. District Sub-Admin privileges required.');
+      if (res.user.role !== 'subadmin') {
+        throw new Error('Access Denied. This portal is for District Sub-Admin officers only.');
       }
-      API.setAuth(res.token, res.user, res.user.role);
+      API.setAuth(res.token, res.user, 'subadmin');
       navigate('/admin/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed');
