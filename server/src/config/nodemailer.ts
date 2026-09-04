@@ -1,19 +1,14 @@
 import nodemailer from 'nodemailer';
 
-export const getTransporter = () => {
+const createTransporter = (port: number) => {
   const emailUser = (process.env.EMAIL_USER || '').trim();
   const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
   const emailHost = (process.env.EMAIL_HOST || 'smtp.gmail.com').trim();
-  const emailPort = parseInt(process.env.EMAIL_PORT || '465', 10);
-  const isSecure = emailPort === 465;
-
-  if (!emailUser || !emailPass) {
-    console.warn('[Google SMTP] EMAIL_USER and EMAIL_PASS are not configured.');
-  }
+  const isSecure = port === 465;
 
   return nodemailer.createTransport({
     host: emailHost,
-    port: emailPort,
+    port: port,
     secure: isSecure,
     auth: {
       user: emailUser,
@@ -22,7 +17,15 @@ export const getTransporter = () => {
     tls: {
       rejectUnauthorized: false,
     },
+    connectionTimeout: 8000, // 8 sec connection timeout
+    greetingTimeout: 8000,   // 8 sec greeting timeout
+    socketTimeout: 10000,    // 10 sec socket timeout
   });
+};
+
+export const getTransporter = () => {
+  const primaryPort = parseInt(process.env.EMAIL_PORT || '465', 10);
+  return createTransporter(primaryPort);
 };
 
 export const transporter = getTransporter();
@@ -51,8 +54,6 @@ export const sendOTPEmail = async (
     return { success: true, devMode: true, otpCode };
   }
 
-  const activeTransporter = getTransporter();
-
   const mailOptions = {
     from: `"CivicLens Portal" <${emailUser}>`,
     to: toEmail,
@@ -77,12 +78,24 @@ export const sendOTPEmail = async (
     `,
   };
 
+  const primaryPort = parseInt(process.env.EMAIL_PORT || '465', 10);
+
   try {
-    const info = await activeTransporter.sendMail(mailOptions);
-    console.log(`[Google SMTP SUCCESS] OTP email sent to ${toEmail}. MessageId: ${info.messageId}`);
+    const primaryTransporter = createTransporter(primaryPort);
+    const info = await primaryTransporter.sendMail(mailOptions);
+    console.log(`[Google SMTP SUCCESS] OTP email sent to ${toEmail} via port ${primaryPort}. MessageId: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
-  } catch (error: any) {
-    console.error(`[Google SMTP Error] Failed to send email to ${toEmail}: ${error?.message || error}`);
-    throw new Error(`Google SMTP Error: ${error?.message || error}`);
+  } catch (primaryErr: any) {
+    console.warn(`[Google SMTP Warning] Failed on port ${primaryPort} (${primaryErr.message}). Retrying on fallback port...`);
+    const fallbackPort = primaryPort === 465 ? 587 : 465;
+    try {
+      const fallbackTransporter = createTransporter(fallbackPort);
+      const info = await fallbackTransporter.sendMail(mailOptions);
+      console.log(`[Google SMTP SUCCESS] OTP email sent to ${toEmail} via fallback port ${fallbackPort}. MessageId: ${info.messageId}`);
+      return { success: true, messageId: info.messageId };
+    } catch (fallbackErr: any) {
+      console.error(`[Google SMTP Error] Failed on both ports ${primaryPort} & ${fallbackPort}: ${fallbackErr.message}`);
+      throw new Error(`Google SMTP Error: ${primaryErr.message || fallbackErr.message}`);
+    }
   }
 };
