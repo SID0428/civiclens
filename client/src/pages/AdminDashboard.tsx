@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, CheckCircle2, Shield, RefreshCw, PenSquare, MapPin } from 'lucide-react';
 import { API } from '../services/api';
-import { Complaint } from '../types';
+import { Complaint, User } from '../types';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -146,7 +146,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
           <div className="flex flex-wrap gap-1.5 pt-0.5">
             {currentUser?.assignedPincodes && currentUser.assignedPincodes.length > 0 ? (
-              currentUser.assignedPincodes.map((p) => (
+              currentUser.assignedPincodes.map((p: string) => (
                 <span key={p} className="px-2.5 py-1 bg-white border border-blue-200 rounded-lg text-xs font-mono font-bold text-blue-700 shadow-2xs">
                   PIN {p}
                 </span>
