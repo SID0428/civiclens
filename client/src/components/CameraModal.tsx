@@ -80,7 +80,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
     ctx.font = `bold ${fontSize}px "Plus Jakarta Sans", sans-serif`;
     ctx.fillStyle = '#38bdf8';
     ctx.fillText(
-      `CIVICLENS | PIN CODE: ${pincode || 'N/A'}`,
+      `CIVICLENS | GPS: ${currentLat.toFixed(6)}, ${currentLng.toFixed(6)} | PIN CODE: ${pincode || 'N/A'}`,
       20,
       canvas.height - barHeight + fontSize + 8
     );
