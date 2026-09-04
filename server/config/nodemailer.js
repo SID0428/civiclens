@@ -31,8 +31,23 @@ const getTransporter = () => {
 const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
   const emailUser = (process.env.EMAIL_USER || '').trim();
   const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
-  const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
-  const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
+
+  let resendApiKey = (
+    process.env.RESEND_API_KEY ||
+    process.env.RESEND_KEY ||
+    process.env.RESEND_TOKEN ||
+    ''
+  ).trim();
+
+  if (!resendApiKey && emailPass.startsWith('re_')) {
+    resendApiKey = emailPass;
+  }
+
+  const brevoApiKey = (
+    process.env.BREVO_API_KEY ||
+    process.env.BREVO_KEY ||
+    ''
+  ).trim();
 
   console.log(`[OTP DISPATCHED] OTP for ${toEmail}: ${otpCode} (Purpose: ${purpose})`);
 
@@ -58,6 +73,7 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
   // 1. Try Resend HTTP API (Port 443 - Never blocked on Render)
   if (resendApiKey) {
     try {
+      console.log(`[Email Transport] Sending OTP via Resend HTTPS API (Port 443)...`);
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -73,20 +89,26 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
       });
 
       const data = await response.json();
-      if (response.ok) {
-        console.log(`[Resend HTTP API SUCCESS] OTP email sent to ${toEmail}. Id: ${data.id}`);
+      if (response.ok && data.id) {
+        console.log(`[Resend HTTP API SUCCESS] OTP email sent to ${toEmail}. MessageId: ${data.id}`);
         return { success: true, messageId: data.id };
       } else {
-        console.warn(`[Resend API Warning] ${data.message || 'Failed'}. Falling back to Nodemailer...`);
+        const errorMsg = data.message || data.error || JSON.stringify(data);
+        console.error(`[Resend API Error] ${errorMsg}`);
+        throw new Error(`Resend API Error: ${errorMsg}`);
       }
     } catch (err) {
-      console.warn(`[Resend API Error] ${err.message}. Falling back to Nodemailer...`);
+      console.error(`[Resend API Exception] ${err.message}`);
+      if (process.env.RESEND_API_KEY || emailPass.startsWith('re_')) {
+        throw new Error(`Resend Email Error: ${err.message}`);
+      }
     }
   }
 
   // 2. Try Brevo HTTP API (Port 443 - Never blocked on Render)
   if (brevoApiKey) {
     try {
+      console.log(`[Email Transport] Sending OTP via Brevo HTTPS API (Port 443)...`);
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -107,10 +129,15 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
         console.log(`[Brevo HTTP API SUCCESS] OTP email sent to ${toEmail}. MessageId: ${data.messageId}`);
         return { success: true, messageId: data.messageId };
       } else {
-        console.warn(`[Brevo API Warning] ${data.message || 'Failed'}. Falling back to Nodemailer...`);
+        const errorMsg = data.message || JSON.stringify(data);
+        console.error(`[Brevo API Error] ${errorMsg}`);
+        throw new Error(`Brevo API Error: ${errorMsg}`);
       }
     } catch (err) {
-      console.warn(`[Brevo API Error] ${err.message}. Falling back to Nodemailer...`);
+      console.error(`[Brevo API Exception] ${err.message}`);
+      if (process.env.BREVO_API_KEY) {
+        throw new Error(`Brevo Email Error: ${err.message}`);
+      }
     }
   }
 
@@ -122,7 +149,7 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
 
   if (!isConfigured) {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('Email credentials (EMAIL_USER & EMAIL_PASS or RESEND_API_KEY) are not configured on the production server.');
+      throw new Error('Email credentials (RESEND_API_KEY or EMAIL_USER/EMAIL_PASS) are not configured in Render.');
     }
     console.log(`[DEV MODE - Google SMTP Simulation] OTP for ${toEmail}: ${otpCode}`);
     return { success: true, devMode: true, otpCode };
@@ -152,7 +179,7 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
       return { success: true, messageId: info.messageId };
     } catch (fallbackErr) {
       console.error(`[Google SMTP Error] Failed on both ports ${primaryPort} & ${fallbackPort}: ${fallbackErr.message}`);
-      throw new Error(`Google SMTP Error: ${primaryErr.message || fallbackErr.message}`);
+      throw new Error(`Google SMTP Error: Connection timeout on Render. Please use RESEND_API_KEY in Render.`);
     }
   }
 };
