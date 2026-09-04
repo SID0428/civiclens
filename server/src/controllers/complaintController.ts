@@ -43,7 +43,7 @@ const buildDistrictRegexList = (districtStr?: string): RegExp[] => {
 
   const low = (cleaned || raw).toLowerCase();
 
-  // Known Indian District Aliases & Variations
+  // Known Indian District Aliases & Regional Variations
   if (low.includes('gautam') || low.includes('noida') || low.includes('gb nagar') || low.includes('buddh')) {
     targets.add('Gautam Buddha Nagar');
     targets.add('Gautam Buddh Nagar');
@@ -51,7 +51,6 @@ const buildDistrictRegexList = (districtStr?: string): RegExp[] => {
     targets.add('GB Nagar');
     targets.add('Noida');
     targets.add('Greater Noida');
-    targets.add('Gautam');
   } else if (low.includes('bengaluru') || low.includes('bangalore')) {
     targets.add('Bengaluru');
     targets.add('Bangalore');
@@ -75,13 +74,6 @@ const buildDistrictRegexList = (districtStr?: string): RegExp[] => {
     if (!t) continue;
     const esc = t.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&').replace(/\s+/g, '\\s+');
     regexes.push(new RegExp(esc, 'i'));
-  }
-
-  // Token regex matching (e.g. Gautam OR Buddh OR Nagar)
-  const tokens = (cleaned || raw).split(/\s+/).filter((w) => w.length >= 4);
-  for (const token of tokens) {
-    const escToken = token.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&');
-    regexes.push(new RegExp(escToken, 'i'));
   }
 
   return regexes;
