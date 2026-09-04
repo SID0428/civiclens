@@ -1,23 +1,35 @@
 const nodemailer = require('nodemailer');
 
-const createTransporter = () => {
+let cachedTransporter = null;
+
+const getTransporter = () => {
+  if (cachedTransporter) return cachedTransporter;
+
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn('[Google SMTP] EMAIL_USER and EMAIL_PASS are not configured. Email OTPs will be logged to console in dev mode.');
   }
 
-  return nodemailer.createTransport({
+  cachedTransporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.EMAIL_PORT || '587'),
     secure: false, // true for 465, false for other ports
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    connectionTimeout: 4000, // 4s timeout
+    greetingTimeout: 4000,
+    socketTimeout: 4000,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
+
+  return cachedTransporter;
 };
 
 const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
 
   const mailOptions = {
     from: `"CivicLens Portal" <${process.env.EMAIL_USER || 'noreply@civiclens.gov.in'}>`,
@@ -60,7 +72,7 @@ const sendOTPEmail = async (toEmail, otpCode, purpose = 'Verification') => {
 };
 
 const sendSubAdminWelcomeEmail = async (officer) => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const loginUrl = process.env.CLIENT_URL
     ? `${process.env.CLIENT_URL}/admin/login`
     : 'https://civiclens-yeq3.vercel.app/admin/login';

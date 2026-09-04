@@ -38,7 +38,10 @@ const sendEmailOTP = async (req, res) => {
     user.otp = { code: otpCode, expiresAt, purpose };
     await user.save();
 
-    await sendOTPEmail(email, otpCode, purpose);
+    // Dispatch email asynchronously in background so user doesn't wait for SMTP network delay
+    sendOTPEmail(email, otpCode, purpose).catch((err) => {
+      console.error('[Async Email Error]:', err);
+    });
 
     res.status(200).json({
       success: true,
