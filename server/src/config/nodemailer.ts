@@ -17,9 +17,9 @@ const createTransporter = (port: number) => {
     tls: {
       rejectUnauthorized: false,
     },
-    connectionTimeout: 8000, // 8 sec connection timeout
-    greetingTimeout: 8000,   // 8 sec greeting timeout
-    socketTimeout: 10000,    // 10 sec socket timeout
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 10000,
   });
 };
 
@@ -37,8 +37,88 @@ export const sendOTPEmail = async (
 ): Promise<{ success: boolean; devMode?: boolean; otpCode?: string; messageId?: string }> => {
   const emailUser = (process.env.EMAIL_USER || '').trim();
   const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
+  const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
+  const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
 
   console.log(`[OTP DISPATCHED] OTP for ${toEmail}: ${otpCode} (Purpose: ${purpose})`);
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="color: #2563eb; margin: 0; font-size: 24px;">CivicLens</h1>
+        <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Smart Civic Grievance Redressal System</p>
+      </div>
+      <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+        <p style="color: #334155; font-size: 14px; margin-bottom: 12px;">Use the OTP below to complete your ${purpose.toLowerCase()}:</p>
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #1e293b; background: #ffffff; padding: 12px; border-radius: 6px; display: inline-block; border: 1px dashed #cbd5e1;">
+          ${otpCode}
+        </div>
+        <p style="color: #94a3b8; font-size: 12px; margin-top: 12px;">Valid for 10 minutes. Please do not share this OTP with anyone.</p>
+      </div>
+      <p style="color: #64748b; font-size: 12px; text-align: center; margin: 0;">
+        If you did not request this, you can safely ignore this email.
+      </p>
+    </div>
+  `;
+
+  // 1. Try Resend HTTP API (Port 443 - Never blocked on Render)
+  if (resendApiKey) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${resendApiKey}`,
+        },
+        body: JSON.stringify({
+          from: 'CivicLens <onboarding@resend.dev>',
+          to: [toEmail],
+          subject: `[CivicLens] Your One-Time Password (OTP) for ${purpose}`,
+          html: htmlContent,
+        }),
+      });
+
+      const data: any = await response.json();
+      if (response.ok) {
+        console.log(`[Resend HTTP API SUCCESS] OTP email sent to ${toEmail}. Id: ${data.id}`);
+        return { success: true, messageId: data.id };
+      } else {
+        console.warn(`[Resend API Warning] ${data.message || 'Failed'}. Falling back to Nodemailer...`);
+      }
+    } catch (err: any) {
+      console.warn(`[Resend API Error] ${err.message}. Falling back to Nodemailer...`);
+    }
+  }
+
+  // 2. Try Brevo HTTP API (Port 443 - Never blocked on Render)
+  if (brevoApiKey) {
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': brevoApiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: 'CivicLens Portal', email: emailUser || 'noreply@civiclens.gov.in' },
+          to: [{ email: toEmail }],
+          subject: `[CivicLens] Your One-Time Password (OTP) for ${purpose}`,
+          htmlContent: htmlContent,
+        }),
+      });
+
+      const data: any = await response.json();
+      if (response.ok) {
+        console.log(`[Brevo HTTP API SUCCESS] OTP email sent to ${toEmail}. MessageId: ${data.messageId}`);
+        return { success: true, messageId: data.messageId };
+      } else {
+        console.warn(`[Brevo API Warning] ${data.message || 'Failed'}. Falling back to Nodemailer...`);
+      }
+    } catch (err: any) {
+      console.warn(`[Brevo API Error] ${err.message}. Falling back to Nodemailer...`);
+    }
+  }
 
   const isConfigured = emailUser &&
                        emailPass &&
@@ -48,7 +128,7 @@ export const sendOTPEmail = async (
 
   if (!isConfigured) {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('Email credentials (EMAIL_USER & EMAIL_PASS) are not configured on the production server.');
+      throw new Error('Email credentials (EMAIL_USER & EMAIL_PASS or RESEND_API_KEY) are not configured on the production server.');
     }
     console.log(`[Google SMTP Dev Mode] OTP for ${toEmail}: ${otpCode} (Purpose: ${purpose})`);
     return { success: true, devMode: true, otpCode };
@@ -58,24 +138,7 @@ export const sendOTPEmail = async (
     from: `"CivicLens Portal" <${emailUser}>`,
     to: toEmail,
     subject: `[CivicLens] Your One-Time Password (OTP) for ${purpose}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h1 style="color: #2563eb; margin: 0; font-size: 24px;">CivicLens</h1>
-          <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Smart Civic Grievance Redressal System</p>
-        </div>
-        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
-          <p style="color: #334155; font-size: 14px; margin-bottom: 12px;">Use the OTP below to complete your ${purpose.toLowerCase()}:</p>
-          <div style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #1e293b; background: #ffffff; padding: 12px; border-radius: 6px; display: inline-block; border: 1px dashed #cbd5e1;">
-            ${otpCode}
-          </div>
-          <p style="color: #94a3b8; font-size: 12px; margin-top: 12px;">Valid for 10 minutes. Please do not share this OTP with anyone.</p>
-        </div>
-        <p style="color: #64748b; font-size: 12px; text-align: center; margin: 0;">
-          If you did not request this, you can safely ignore this email.
-        </p>
-      </div>
-    `,
+    html: htmlContent,
   };
 
   const primaryPort = parseInt(process.env.EMAIL_PORT || '465', 10);
