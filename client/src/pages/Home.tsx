@@ -23,6 +23,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { API } from '../services/api';
+import { CivicGrievanceMap } from '../components/CivicGrievanceMap';
 
 interface PublicStats {
   totalComplaints: number;
@@ -364,6 +365,35 @@ export const Home: React.FC = () => {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* ─── LIVE INTERACTIVE GEOTAGGED GRIEVANCE RADAR (MAP) ─── */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-3">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold border border-sky-200">
+              <Globe className="w-3.5 h-3.5 text-sky-600" />
+              <span>Real-Time Geospatial Intelligence</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Live Issue Heatmap &amp; Incident Radar
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 max-w-2xl">
+              Explore geotagged complaints nationwide. Click any marker on the grid to inspect on-site photographic evidence, category diagnosis, citizen reports, and resolution tracking.
+            </p>
+          </div>
+
+          <Link
+            to="/explore"
+            className="text-xs font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1 self-start sm:self-auto"
+          >
+            <span>Open Fullscreen Public Feed</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* The Live Interactive Map Component */}
+        <CivicGrievanceMap />
       </section>
 
       {/* ─── 2. THREE-STEP WORKFLOW PIPELINE ─── */}
