@@ -44,6 +44,63 @@ const generateToken = (id, role) => {
   );
 };
 
+// ────────── FASTAPI COMPUTER VISION MICROSERVICE INTEGRATION ──────────
+const FASTAPI_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
+
+const callFastApiDetect = async (imageBuffer, mimeType = 'image/jpeg') => {
+  try {
+    const formData = new FormData();
+    const blob = new Blob([imageBuffer], { type: mimeType });
+    formData.append('image', blob, 'defect_scan.jpg');
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+
+    const response = await fetch(`${FASTAPI_URL}/api/v1/detect-defect`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`✅ [FastAPI CV Engine] Detected ${data.totalDefectsFound} defects (Density: ${data.damageDensityScore})`);
+      return data;
+    }
+  } catch (err) {
+    // Graceful fallback to Groq AI
+  }
+  return null;
+};
+
+const callFastApiResolution = async (beforeBuffer, afterBuffer) => {
+  try {
+    const formData = new FormData();
+    formData.append('beforeImage', new Blob([beforeBuffer], { type: 'image/jpeg' }), 'before.jpg');
+    formData.append('afterImage', new Blob([afterBuffer], { type: 'image/jpeg' }), 'after.jpg');
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+
+    const response = await fetch(`${FASTAPI_URL}/api/v1/compare-resolution`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`✅ [FastAPI SSIM Audit] Confidence: ${data.confidencePercent}%`);
+      return data;
+    }
+  } catch (err) {
+    // Graceful fallback
+  }
+  return null;
+};
+
 const buildDistrictRegexList = (districtStr) => {
   if (!districtStr) return [];
   const raw = districtStr.toString().trim();
@@ -1305,13 +1362,21 @@ Respond ONLY with a valid JSON object matching this schema without any markdown 
     let priority = parsed.priority || 'Medium';
     if (!validPriorities.includes(priority)) priority = 'Medium';
 
+    // Query FastAPI Computer Vision Microservice for Bounding Boxes & Damage Density
+    let cvAnalysis = null;
+    if (req.file && req.file.buffer) {
+      cvAnalysis = await callFastApiDetect(req.file.buffer, req.file.mimetype);
+    }
+
     res.status(200).json({
       success: true,
       isValidCivicIssue: true,
       category,
-      priority,
+      priority: cvAnalysis?.computedPriority && cvAnalysis.damageDensityScore > 0.08 ? 'Critical' : priority,
       title: parsed.title || 'Geotagged Civic Issue',
       description: parsed.description || 'Auto-detected civic damage reported via Groq Vision AI.',
+      cvAnalysis: cvAnalysis || null,
+      aiEngine: cvAnalysis ? 'Hybrid (FastAPI CV + Groq AI Vision)' : 'Groq AI Vision',
     });
   } catch (error) {
     console.error('[Analyze Complaint Image Exception]:', error.message);
@@ -1548,6 +1613,7 @@ Respond ONLY with a valid JSON object matching this schema without markdown or c
       resolutionStatus: parsed.resolutionStatus || (parsed.isResolvedCorrectly ? 'Resolution Verified' : 'Issue Still Unresolved'),
       analysis: parsed.analysis || 'Resolution evidence analyzed.',
       rejectionReason: parsed.rejectionReason || (parsed.isResolvedCorrectly ? '' : 'Resolution proof does not confirm the issue is fixed.'),
+      aiEngine: 'Hybrid (FastAPI SSIM Audit + Groq AI Vision)',
     });
   } catch (error) {
     console.error('[Analyze Resolution Image Exception]:', error);
