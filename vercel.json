@@ -1,6 +1,7 @@
 {
-  "buildCommand": "cd client && npm install && npm run build",
-  "outputDirectory": "client/dist",
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist",
+  "rootDirectory": "client",
   "rewrites": [
     { "source": "/api/:match*", "destination": "https://civiclens-ez72.onrender.com/api/:match*" },
     { "source": "/(.*)", "destination": "/index.html" }
