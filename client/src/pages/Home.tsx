@@ -74,6 +74,17 @@ export const Home: React.FC = () => {
     const interval = setInterval(() => {
       fetchStats();
     }, 30000);
+
+    // Scroll to map if hash is present
+    if (window.location.hash === '#map') {
+      setTimeout(() => {
+        const el = document.getElementById('map');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 200);
+    }
+
     return () => clearInterval(interval);
   }, []);
 
@@ -368,7 +379,7 @@ export const Home: React.FC = () => {
       </section>
 
       {/* ─── LIVE INTERACTIVE GEOTAGGED GRIEVANCE RADAR (MAP) ─── */}
-      <section className="space-y-4">
+      <section id="map" className="space-y-4 scroll-mt-24">
         <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-3">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold border border-sky-200">

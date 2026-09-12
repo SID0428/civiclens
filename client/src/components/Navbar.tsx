@@ -13,6 +13,7 @@ import {
   Building2,
   ChevronRight,
   LogIn,
+  MapPin,
 } from 'lucide-react';
 import { API } from '../services/api';
 
@@ -20,6 +21,19 @@ export const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleViewMap = (e: React.MouseEvent) => {
+    setIsMobileMenuOpen(false);
+    if (location.pathname === '/') {
+      e.preventDefault();
+      const mapEl = document.getElementById('map');
+      if (mapEl) {
+        mapEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } else {
+      navigate('/#map');
+    }
+  };
 
   const isSuperAdminPath = location.pathname.startsWith('/superadmin');
   const isAdminPath = location.pathname.startsWith('/admin');
@@ -110,6 +124,15 @@ export const Navbar: React.FC = () => {
                 <Globe className="w-3.5 h-3.5 text-sky-600" />
                 <span>Public Feed</span>
               </Link>
+
+              <button
+                type="button"
+                onClick={handleViewMap}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 text-slate-600 hover:text-sky-700 hover:bg-sky-50/80 border border-transparent hover:border-sky-200"
+              >
+                <MapPin className="w-3.5 h-3.5 text-sky-600" />
+                <span>View Map</span>
+              </button>
 
               <Link
                 to="/report"
@@ -251,6 +274,18 @@ export const Navbar: React.FC = () => {
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                 </Link>
+
+                <button
+                  type="button"
+                  onClick={handleViewMap}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-between text-slate-700 hover:bg-slate-100"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <MapPin className="w-4 h-4 text-sky-600" />
+                    <span>Live Issue Map</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                </button>
 
                 <Link
                   to="/report"
