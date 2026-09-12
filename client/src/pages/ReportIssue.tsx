@@ -220,6 +220,8 @@ export const ReportIssue: React.FC = () => {
 
         if (res.isFallback) {
           setAiSuccessBadge('✨ Auto-filled civic grievance details for review (Editable below)');
+        } else if (res.cvAnalysis && res.cvAnalysis.totalDefectsFound > 0) {
+          setAiSuccessBadge(`✨ Dual-AI Engine (FastAPI CV + Groq): ${res.category} | Priority: ${res.priority} (${res.cvAnalysis.totalDefectsFound} Defect Zones Detected)`);
         } else {
           setAiSuccessBadge(`✨ Auto-detected by Groq AI Vision: ${res.category} (Severity: ${res.priority})`);
         }

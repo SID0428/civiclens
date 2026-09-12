@@ -46,6 +46,35 @@ const generateToken = (id: string, role: UserRole): string => {
   );
 };
 
+// ────────── FASTAPI COMPUTER VISION MICROSERVICE INTEGRATION ──────────
+const FASTAPI_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
+
+const callFastApiDetect = async (imageBuffer: Buffer, mimeType: string = 'image/jpeg'): Promise<any | null> => {
+  try {
+    const formData = new FormData();
+    const blob = new Blob([imageBuffer as any], { type: mimeType });
+    formData.append('image', blob, 'defect_scan.jpg');
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+
+    const response = await fetch(`${FASTAPI_URL}/api/v1/detect-defect`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    }
+  } catch (err) {
+    // Graceful fallback
+  }
+  return null;
+};
+
 const buildDistrictRegexList = (districtStr?: string): RegExp[] => {
   if (!districtStr) return [];
   const raw = districtStr.toString().trim();
