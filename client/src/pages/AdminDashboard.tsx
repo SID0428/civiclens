@@ -47,7 +47,7 @@ export const AdminDashboard: React.FC = () => {
   const [resolutionPhotoLat, setResolutionPhotoLat] = useState<number | null>(null);
   const [resolutionPhotoLng, setResolutionPhotoLng] = useState<number | null>(null);
 
-  // Groq AI resolution verification state
+  // AI resolution verification state
   const [analyzingResolutionAi, setAnalyzingResolutionAi] = useState(false);
   const [aiResolutionResult, setAiResolutionResult] = useState<{
     isResolvedCorrectly: boolean | null;
@@ -214,7 +214,7 @@ export const AdminDashboard: React.FC = () => {
         });
       }
     } catch (err: any) {
-      console.warn('Groq AI Resolution Analysis Error:', err);
+      console.warn('AI Resolution Analysis Error:', err);
       setAiResolutionError(err.message || 'AI resolution verification check could not be completed.');
     } finally {
       setAnalyzingResolutionAi(false);
@@ -249,9 +249,9 @@ export const AdminDashboard: React.FC = () => {
         return;
       }
 
-      // 4. Strict Groq AI resolution verification
+      // 4. Strict AI resolution verification
       if (aiResolutionResult && aiResolutionResult.isResolvedCorrectly === false) {
-        alert(`❌ Resolution proof was rejected by Groq AI:\n\n${aiResolutionResult.rejectionReason || 'The photo does not verify that the issue has been resolved.'}\n\nPlease take a valid photo of the completed repair work before saving.`);
+        alert(`❌ Resolution proof was rejected by AI Vision Audit:\n\n${aiResolutionResult.rejectionReason || 'The photo does not verify that the issue has been resolved.'}\n\nPlease take a valid photo of the completed repair work before saving.`);
         return;
       }
     }
@@ -977,7 +977,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* ───────────── RESOLVED STATUS FLOW (Strict GPS + Notes + Photo + Groq AI) ───────────── */}
+              {/* ───────────── RESOLVED STATUS FLOW (Strict GPS + Notes + Photo + AI Audit) ───────────── */}
               {newStatus === 'Resolved' && (
                 <div className="space-y-4">
                   {/* Step 1: Live On-Site GPS & Map Verification */}
@@ -1120,7 +1120,7 @@ export const AdminDashboard: React.FC = () => {
                     />
                   </div>
 
-                  {/* Step 3: Take Resolution Photo & Groq AI Verification */}
+                  {/* Step 3: Take Resolution Photo & AI Verification */}
                   <div className={`space-y-3 border rounded-2xl p-4 transition ${locationVerified ? 'border-slate-200 bg-slate-50' : 'border-slate-200 bg-slate-100 opacity-70'}`}>
                     <div className="flex items-center gap-2">
                       <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${locationVerified ? 'bg-sky-600 text-white' : 'bg-slate-300 text-slate-600'}`}>
@@ -1187,14 +1187,14 @@ export const AdminDashboard: React.FC = () => {
                           </button>
                         </div>
 
-                        {/* Groq AI Vision Resolution Audit Feedback */}
+                        {/* AI Vision Resolution Audit Feedback */}
                         {analyzingResolutionAi && (
                           <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-center gap-2.5 text-xs text-purple-900 animate-pulse">
                             <Loader2 className="w-4 h-4 animate-spin text-purple-600 shrink-0" />
                             <div className="flex-1">
                               <div className="font-bold flex items-center gap-1.5 text-purple-800">
                                 <Bot className="w-4 h-4 text-purple-600" />
-                                <span>Groq AI Vision is auditing resolution proof...</span>
+                                <span>AI Vision is auditing resolution proof...</span>
                               </div>
                               <p className="text-[10px] text-purple-700 font-normal">
                                 Analyzing image to verify work completion against "{selectedComplaint.title}"
@@ -1216,12 +1216,12 @@ export const AdminDashboard: React.FC = () => {
                                 {aiResolutionResult.isResolvedCorrectly ? (
                                   <>
                                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                    <span className="text-emerald-800">Groq AI Verified: {aiResolutionResult.resolutionStatus || 'Resolution Confirmed'}</span>
+                                    <span className="text-emerald-800">AI Verified: {aiResolutionResult.resolutionStatus || 'Resolution Confirmed'}</span>
                                   </>
                                 ) : (
                                   <>
                                     <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                                    <span className="text-rose-800">Groq AI Rejected: {aiResolutionResult.resolutionStatus || 'Work Incomplete / Invalid'}</span>
+                                    <span className="text-rose-800">AI Rejected: {aiResolutionResult.resolutionStatus || 'Work Incomplete / Invalid'}</span>
                                   </>
                                 )}
                               </div>
@@ -1259,7 +1259,7 @@ export const AdminDashboard: React.FC = () => {
                                 className="text-[10px] font-bold text-purple-700 hover:text-purple-800 underline flex items-center gap-1"
                               >
                                 <Sparkles className="w-3 h-3 text-purple-600" />
-                                <span>Re-run Groq AI Audit</span>
+                                <span>Re-run AI Audit</span>
                               </button>
                             </div>
                           </div>
@@ -1299,12 +1299,12 @@ export const AdminDashboard: React.FC = () => {
                   ) : aiResolutionResult?.isResolvedCorrectly === false ? (
                     <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2 font-semibold">
                       <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>Resolution photo rejected by Groq AI. Submission is disabled until a valid photo of completed work is provided.</span>
+                      <span>Resolution photo rejected by AI Audit. Submission is disabled until a valid photo of completed work is provided.</span>
                     </div>
                   ) : (
                     <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 font-semibold">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>GPS &amp; Groq AI Verified! Ready to publish resolved update.</span>
+                      <span>GPS &amp; AI Verified! Ready to publish resolved update.</span>
                     </div>
                   )}
                 </div>

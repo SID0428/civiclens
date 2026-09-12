@@ -1077,11 +1077,11 @@ const analyzeComplaintImage = async (req, res) => {
         title: '',
         description: '',
         category: '',
-        message: 'GROQ_API_KEY is not configured on server. Please add your Groq API key in Render / environment settings to enable live AI photo verification.',
+        message: 'AI photo verification service is temporarily unavailable.',
       });
     }
 
-    console.log('[Groq AI] Sending image to Groq Vision API...');
+    console.log('[AI Vision] Sending image to AI Vision API...');
 
     const promptText = `You are a strict municipal civic infrastructure AI validator and classifier for CivicLens.
 Your primary job is to verify if this image depicts an authentic, OUTDOOR or PUBLIC municipal infrastructure problem maintained by city authorities.
@@ -1374,9 +1374,9 @@ Respond ONLY with a valid JSON object matching this schema without any markdown 
       category,
       priority: cvAnalysis?.computedPriority && cvAnalysis.damageDensityScore > 0.08 ? 'Critical' : priority,
       title: parsed.title || 'Geotagged Civic Issue',
-      description: parsed.description || 'Auto-detected civic damage reported via Groq Vision AI.',
+      description: parsed.description || 'Auto-detected civic damage reported via AI Vision.',
       cvAnalysis: cvAnalysis || null,
-      aiEngine: cvAnalysis ? 'Hybrid (FastAPI CV + Groq AI Vision)' : 'Groq AI Vision',
+      aiEngine: cvAnalysis ? 'Dual-AI Engine (FastAPI CV + AI Vision)' : 'AI Vision Engine',
     });
   } catch (error) {
     console.error('[Analyze Complaint Image Exception]:', error.message);
@@ -1439,13 +1439,13 @@ const analyzeResolutionImage = async (req, res) => {
         missingApiKey: true,
         confidence: 'Medium',
         resolutionStatus: 'Unverified (API Key Missing)',
-        analysis: 'GROQ_API_KEY not configured on server. Resolution accepted without automated AI vision audit.',
+        analysis: 'AI vision key not configured on server. Resolution accepted without automated AI vision audit.',
         rejectionReason: '',
-        message: 'GROQ_API_KEY is not configured on server.',
+        message: 'AI verification service is temporarily unavailable.',
       });
     }
 
-    console.log('[Groq AI] Sending resolution image to Groq Vision API...');
+    console.log('[AI Vision] Sending resolution image to AI Vision API...');
 
     const promptText = `You are an expert municipal infrastructure auditor and grievance resolution validator for CivicLens.
 Your task is to inspect this RESOLUTION PROOF PHOTO taken on-site to verify if the reported civic grievance has been ACTUALLY AND SATISFACTORILY RESOLVED.
@@ -1613,7 +1613,7 @@ Respond ONLY with a valid JSON object matching this schema without markdown or c
       resolutionStatus: parsed.resolutionStatus || (parsed.isResolvedCorrectly ? 'Resolution Verified' : 'Issue Still Unresolved'),
       analysis: parsed.analysis || 'Resolution evidence analyzed.',
       rejectionReason: parsed.rejectionReason || (parsed.isResolvedCorrectly ? '' : 'Resolution proof does not confirm the issue is fixed.'),
-      aiEngine: 'Hybrid (FastAPI SSIM Audit + Groq AI Vision)',
+      aiEngine: 'Dual-AI Engine (FastAPI SSIM Audit + AI Vision)',
     });
   } catch (error) {
     console.error('[Analyze Resolution Image Exception]:', error);

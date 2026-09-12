@@ -62,7 +62,7 @@ export const ReportIssue: React.FC = () => {
   const [devOtp, setDevOtp] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
 
-  // Groq AI Vision States
+  // AI Vision States
   const [analyzingAi, setAnalyzingAi] = useState(false);
   const [aiError, setAiError] = useState('');
   const [aiSuccessBadge, setAiSuccessBadge] = useState<string | null>(null);
@@ -184,7 +184,7 @@ export const ReportIssue: React.FC = () => {
 
     // If the previous photo was invalid or rejected, replace it with the new one!
     setPhotos((prev) => (isValidCivicIssue === false ? [{ file, dataUrl, lat, lng }] : [...prev, { file, dataUrl, lat, lng }]));
-    analyzePhotoWithGroq(file, dataUrl);
+    analyzePhotoWithAI(file, dataUrl);
   };
 
   const MAX_PRESENCE_DISTANCE_METERS = 100;
@@ -194,7 +194,7 @@ export const ReportIssue: React.FC = () => {
     : 0;
   const isOutOfRange = Boolean(primaryPhoto && photoDistance > MAX_PRESENCE_DISTANCE_METERS);
 
-  const analyzePhotoWithGroq = async (file: File, dataUrl: string) => {
+  const analyzePhotoWithAI = async (file: File, dataUrl: string) => {
     setAnalyzingAi(true);
     setAiError('');
     setAiSuccessBadge(null);
@@ -221,19 +221,19 @@ export const ReportIssue: React.FC = () => {
         if (res.isFallback) {
           setAiSuccessBadge('✨ Auto-filled civic grievance details for review (Editable below)');
         } else if (res.cvAnalysis && res.cvAnalysis.totalDefectsFound > 0) {
-          setAiSuccessBadge(`✨ Dual-AI Engine (FastAPI CV + Groq): ${res.category} | Priority: ${res.priority} (${res.cvAnalysis.totalDefectsFound} Defect Zones Detected)`);
+          setAiSuccessBadge(`✨ Dual-AI Engine: ${res.category} | Priority: ${res.priority} (${res.cvAnalysis.totalDefectsFound} Defect Zones Detected)`);
         } else {
-          setAiSuccessBadge(`✨ Auto-detected by Groq AI Vision: ${res.category} (Severity: ${res.priority})`);
+          setAiSuccessBadge(`✨ AI Vision Detected: ${res.category} (Severity: ${res.priority})`);
         }
       } else {
         // AI returned unverified or API key missing
         setIsValidCivicIssue(null);
         if (res.missingApiKey) {
-          setAiError(res.message || 'GROQ_API_KEY is not configured on server. Live AI verification is offline.');
+          setAiError(res.message || 'AI verification service is temporarily offline.');
         }
       }
     } catch (err: any) {
-      console.warn('Groq AI Vision Error:', err);
+      console.warn('AI Vision Error:', err);
       setIsValidCivicIssue(null);
       setAiError(err.message || 'AI vision service check could not be completed.');
     } finally {
@@ -686,7 +686,7 @@ export const ReportIssue: React.FC = () => {
             )}
           </div>
 
-          {/* ─── LIVE CAMERA & GROQ AI VISION CAPTURE ─── */}
+          {/* ─── LIVE CAMERA & AI VISION CAPTURE ─── */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <div>
@@ -694,7 +694,7 @@ export const ReportIssue: React.FC = () => {
                   Step 2: Live Camera Proof &amp; AI Analysis *
                 </label>
                 <p className="text-[11px] text-slate-500">
-                  Captures on-site photo with hardware watermark and runs real-time Groq AI vision inspection.
+                  Captures on-site photo with hardware watermark and runs real-time AI vision inspection.
                 </p>
               </div>
               <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200">
@@ -828,11 +828,11 @@ export const ReportIssue: React.FC = () => {
             )}
           </div>
 
-          {/* Groq AI Vision Analysis Status Card */}
+          {/* AI Vision Analysis Status Card */}
           {analyzingAi && (
             <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl flex items-center gap-3 text-sky-800 text-xs font-bold animate-pulse">
               <Loader2 className="w-5 h-5 animate-spin text-sky-600 flex-shrink-0" />
-              <span>🤖 Groq AI Vision is analyzing photo for category, title & severity...</span>
+              <span>🤖 Analyzing photo for category, title & severity...</span>
             </div>
           )}
 
@@ -852,7 +852,7 @@ export const ReportIssue: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-rose-800 font-semibold mt-1.5 leading-relaxed">
-                    {aiError || 'Groq AI Vision system detected that this photo does not depict a public civic infrastructure problem.'}
+                    {aiError || 'AI Vision system detected that this photo does not depict a public civic infrastructure problem.'}
                   </p>
                   <p className="text-[11px] text-rose-700 mt-1 font-medium">
                     ⚠️ <strong>Step 3 (Grievance Details)</strong> and submission are completely locked. Please retake or upload a photo of a valid civic issue to continue.
@@ -993,7 +993,7 @@ export const ReportIssue: React.FC = () => {
               {submitting
                 ? 'Submitting Grievance...'
                 : analyzingAi
-                ? 'Groq AI Analyzing Photo...'
+                ? 'Analyzing Image...'
                 : liveLat === null || liveLng === null
                 ? 'Strict Hardware GPS Required to Submit'
                 : isOutOfRange

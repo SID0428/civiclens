@@ -50,7 +50,7 @@ export const Footer: React.FC = () => {
               </div>
             </Link>
             <p className="text-xs text-slate-600 leading-relaxed font-normal">
-              AI-powered geotagged municipal grievance redressal system. Verified real-time GPS coordinates, Groq Vision AI hazard detection, and on-site anti-tamper geofencing for rapid public resolution.
+              AI-powered geotagged municipal grievance redressal system. Verified real-time GPS coordinates, AI Vision hazard detection, and on-site anti-tamper geofencing for rapid public resolution.
             </p>
             <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/80 w-fit">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
@@ -166,7 +166,7 @@ export const Footer: React.FC = () => {
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1">
                 <div className="font-bold text-slate-800 flex items-center gap-1.5">
                   <Cpu className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Groq AI Vision Categorization</span>
+                  <span>AI Vision Categorization</span>
                 </div>
                 <p className="text-[10px] text-slate-500 leading-tight">
                   Instant visual triage detects fake or non-civic photos and auto-assigns severity levels.

@@ -77,7 +77,7 @@ export const PrivacyPolicy: React.FC = () => {
                 <strong className="text-slate-900">Canvas Watermarking:</strong> Real-time latitude, longitude, and timestamps are rendered permanently onto image bytes using HTML5 Canvas before upload.
               </li>
               <li>
-                <strong className="text-slate-900">AI Vision Verification:</strong> Images are processed through Groq Vision AI to validate authentic municipal infrastructure damage (potholes, garbage, sewage, streetlights). Personal portraits, selfies, personal electronic screens, and indoor furniture are automatically rejected to preserve personal privacy.
+                <strong className="text-slate-900">AI Vision Verification:</strong> Images are processed through AI Vision to validate authentic municipal infrastructure damage (potholes, garbage, sewage, streetlights). Personal portraits, selfies, personal electronic screens, and indoor furniture are automatically rejected to preserve personal privacy.
               </li>
               <li>
                 <strong className="text-slate-900">Public Display:</strong> Verified infrastructure photos are published on the open community grievance feed to ensure civic accountability. Citizens should not photograph private domestic spaces or non-consenting individuals.

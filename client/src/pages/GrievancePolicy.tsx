@@ -162,7 +162,7 @@ export const GrievancePolicy: React.FC = () => {
                 <strong className="text-slate-900">Geofence Perimeter Enforcement:</strong> If the officer is farther than the allowable boundary from the site, resolution photo submission and resolution saving are locked by the platform.
               </li>
               <li>
-                <strong className="text-slate-900">Mandatory "After" Photo &amp; AI Audit:</strong> A live, unalterable camera snapshot of the completed work must be submitted and validated by Groq AI Vision, which is permanently displayed alongside the original "Before" photo on the public transparency feed.
+                <strong className="text-slate-900">Mandatory "After" Photo &amp; AI Audit:</strong> A live, unalterable camera snapshot of the completed work must be submitted and validated by AI Vision, which is permanently displayed alongside the original "Before" photo on the public transparency feed.
               </li>
             </ul>
           </section>

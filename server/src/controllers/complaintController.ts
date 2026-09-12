@@ -806,12 +806,12 @@ export const analyzeComplaintImage = async (req: Request, res: Response): Promis
         title: '',
         description: '',
         category: '',
-        message: 'GROQ_API_KEY is not configured on server. Please add your Groq API key in Render / environment settings to enable live AI photo verification.',
+        message: 'AI photo verification service is temporarily unavailable.',
       });
       return;
     }
 
-    console.log('[Groq AI] Sending image to Groq Vision API...');
+    console.log('[AI Vision] Sending image to AI Vision API...');
 
     const promptText = `You are a strict municipal civic infrastructure AI validator and classifier for CivicLens.
 Your primary job is to verify if this image depicts an authentic, OUTDOOR or PUBLIC municipal infrastructure problem maintained by city authorities.
@@ -1046,7 +1046,7 @@ Respond ONLY with a valid JSON object matching this schema without any markdown 
       category,
       priority,
       title: parsed.title || 'Geotagged Civic Issue',
-      description: parsed.description || 'Auto-detected civic damage reported via Groq Vision AI.',
+      description: parsed.description || 'Auto-detected civic damage reported via AI Vision.',
     });
   } catch (error: any) {
     console.error('[Analyze Complaint Image Exception]:', error.message);
@@ -1111,14 +1111,14 @@ export const analyzeResolutionImage = async (req: Request, res: Response): Promi
         missingApiKey: true,
         confidence: 'Medium',
         resolutionStatus: 'Unverified (API Key Missing)',
-        analysis: 'GROQ_API_KEY not configured on server. Resolution accepted without automated AI vision audit.',
+        analysis: 'AI vision key not configured on server. Resolution accepted without automated AI vision audit.',
         rejectionReason: '',
-        message: 'GROQ_API_KEY is not configured on server.',
+        message: 'AI verification service is temporarily unavailable.',
       });
       return;
     }
 
-    console.log('[Groq AI] Sending resolution image to Groq Vision API...');
+    console.log('[AI Vision] Sending resolution image to AI Vision API...');
 
     const promptText = `You are an expert municipal infrastructure auditor and grievance resolution validator for CivicLens.
 Your task is to inspect this RESOLUTION PROOF PHOTO taken on-site to verify if the reported civic grievance has been ACTUALLY AND SATISFACTORILY RESOLVED.

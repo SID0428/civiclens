@@ -157,7 +157,7 @@ export const Home: React.FC = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500"></span>
               </span>
-              <span className="tracking-wide">Strict Hardware GPS &bull; Groq Vision AI Redressal</span>
+              <span className="tracking-wide">Strict Hardware GPS &bull; AI-Powered Vision Redressal</span>
             </div>
 
             {/* Main Headline */}
@@ -261,7 +261,7 @@ export const Home: React.FC = () => {
                   loading="eager"
                 />
 
-                {/* Simulated Groq AI Scanline Effect on Hover */}
+                {/* Simulated AI Scanline Effect on Hover */}
                 <div className="ai-scanline-overlay opacity-60"></div>
 
                 {/* Floating Telemetry Overlays */}
@@ -447,7 +447,7 @@ export const Home: React.FC = () => {
             </div>
             <h3 className="text-base sm:text-lg font-bold text-slate-900">2. Live Watermarked Camera</h3>
             <p className="text-xs text-slate-600 leading-relaxed font-normal">
-              Capture on-site photos with verified GPS coordinates and timestamp watermarks permanently burned onto the canvas bytes with Groq AI analysis.
+              Capture on-site photos with verified GPS coordinates and timestamp watermarks permanently burned onto the canvas bytes with real-time AI vision analysis.
             </p>
           </div>
 
@@ -574,7 +574,7 @@ export const Home: React.FC = () => {
               Live
             </div>
             <div className="text-xs text-slate-300 font-bold uppercase tracking-wider mt-2">
-              Groq AI Vision Audit
+              AI Vision Automated Audit
             </div>
             <div className="text-[10px] text-slate-400 mt-0.5">Anti-Spoof Geotag Security</div>
           </div>
